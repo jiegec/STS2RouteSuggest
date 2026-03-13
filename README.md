@@ -8,9 +8,11 @@ A mod for Slay the Spire 2 that suggests the optimal path through the map and hi
 
 ## Features
 
-- **Automatic path calculation**: Calculates the best route from your current position to the boss
-- **Visual highlighting**: Shows the suggested path in gold on the map screen
-- **Smart scoring**: Weighs room types to balance rewards against risks
+- **Dual path suggestions**: Shows two optimal routes - a safe path and an aggressive path
+- **Visual highlighting**: 
+  - **Gold**: Safe path (minimizes risk)
+  - **Red**: Aggressive path (prioritizes combat for rewards)
+- **Smart scoring**: Different weights for safe vs aggressive playstyles
 
 ## Installation
 
@@ -44,18 +46,45 @@ cd RouteSuggest
 
 ## How It Works
 
-The mod uses a scoring system to evaluate each possible path from your current position to the Boss:
+The mod calculates two optimal paths using different scoring systems:
 
-| Room Type     | Score | Reason                              |
-|---------------|-------|-------------------------------------|
-| **Rest Site** | +1    | Heal and upgrade cards              |
-| **Treasure**  | +1    | Free relic                          |
-| **Shop**      | +1    | Buy cards, relics, and potions      |
-| **Monster**   | -1    | Standard combat encounter           |
-| **Elite**     | -2    | Hard combat with better rewards     |
-| **Boss**      | 0     | Final destination (no score impact) |
+### Safe Path (Gold)
+
+Minimizes encounters and prioritizes safety:
+
+| Room Type     | Score | Reason                         |
+|---------------|-------|--------------------------------|
+| **Rest Site** | +1    | Heal and upgrade cards         |
+| **Treasure**  | +1    | Free relic                     |
+| **Shop**      | +1    | Buy cards, relics, and potions |
+| **Monster**   | -1    | Avoid combat                   |
+| **Elite**     | -2    | Avoid hard encounters          |
+| **Boss**      | 0     | Final destination              |
+
+### Aggressive Path (Red)
+
+Prioritizes combat rewards and unknown encounters:
+
+| Room Type     | Score | Reason                         |
+|---------------|-------|--------------------------------|
+| **Rest Site** | +1    | Heal and upgrade cards         |
+| **Treasure**  | +1    | Free relic                     |
+| **Shop**      | +1    | Buy cards, relics, and potions |
+| **Monster**   | +1    | Gold and card rewards          |
+| **Elite**     | +2    | Relics and better rewards      |
+| **Unknown**   | +1    | Potential for combat           |
+| **Boss**      | 0     | Final destination              |
+
+When both paths share an edge, it appears in gold.
 
 ## Changelog
+
+### Unreleased
+
+- Added dual path mode: safe path (gold) and aggressive path (red)
+- Safe path minimizes combat encounters
+- Aggressive path prioritizes Elite (+2), Monster (+1), and Unknown (+1) rooms
+- Overlapping edges shown in gold
 
 ### v1.0.0
 
