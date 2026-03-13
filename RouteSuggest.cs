@@ -19,19 +19,36 @@ namespace RouteSuggest;
 /// </summary>
 public class PathConfig
 {
+    /// <summary>
+    /// Name for this path configuration (e.g., "Safe", "Aggressive").
+    /// </summary>
     public string Name { get; set; }
+
+    /// <summary>
+    /// Color used to highlight this path type on the map.
+    /// </summary>
     public Color Color { get; set; }
+
     /// <summary>
     /// Higher priority paths are rendered on top of lower priority paths when they overlap.
     /// </summary>
     public int Priority { get; set; }
+
     /// <summary>
-    /// Scoring weights for each room type. Positive = desirable, Negative = undesirable.
+    /// Scoring weights for each room type. Positive values make the room more desirable,
+    /// negative values make it less desirable. Only rooms with defined weights contribute to the score.
     /// </summary>
     public Dictionary<MapPointType, int> ScoringWeights { get; set; } = new Dictionary<MapPointType, int>();
 
+    /// <summary>
+    /// Calculates the total score for a given path using this configuration's scoring weights.
+    /// </summary>
+    /// <param name="path">List of map points representing the path to score.</param>
+    /// <returns>The total score, or 0 if path is null or empty.</returns>
     public int CalculateScore(List<MapPoint> path)
     {
+        if (path == null) return 0;
+
         int score = 0;
         foreach (var point in path)
         {
@@ -44,9 +61,15 @@ public class PathConfig
     }
 }
 
+/// <summary>
+/// Main mod class for RouteSuggest. Provides optimal path suggestions on the map with multiple strategies.
+/// </summary>
 [ModInitializer("ModLoaded")]
 public static class RouteSuggest
 {
+    /// <summary>
+    /// Current run state, set when a run starts.
+    /// </summary>
     public static RunState RunState { get; private set; }
 
     /// <summary>
@@ -56,9 +79,10 @@ public static class RouteSuggest
     public static Dictionary<string, List<MapPoint>> CalculatedPaths { get; private set; } = new Dictionary<string, List<MapPoint>>();
 
     /// <summary>
-    /// List of configured path types. Add new entries here to support more path types.
+    /// List of configured path types. Can be modified at runtime or loaded from config file.
+    /// Defaults contain Safe (gold) and Aggressive (red) path types.
     /// </summary>
-    public static readonly List<PathConfig> PathConfigs = new List<PathConfig>
+    public static List<PathConfig> PathConfigs { get; private set; } = new List<PathConfig>
     {
         new PathConfig
         {
@@ -92,16 +116,30 @@ public static class RouteSuggest
         }
     };
 
-    // Store original colors for each path tick to restore later
+    /// <summary>
+    /// Stores original colors and scales for each highlighted TextureRect to restore later.
+    /// </summary>
     private static readonly Dictionary<TextureRect, (Color color, Vector2 scale)> OriginalTickProperties = new Dictionary<TextureRect, (Color, Vector2)>();
 
-    // Cache for reflection
+    /// <summary>
+    /// Cached reflection field for accessing the map screen's internal paths dictionary.
+    /// </summary>
     private static FieldInfo _pathsField;
+
+    /// <summary>
+    /// Whether reflection has been successfully initialized.
+    /// </summary>
     private static bool _reflectionInitialized = false;
 
-    // Track if we need to highlight when map opens
+    /// <summary>
+    /// Flag indicating if a highlight request is pending for when the map screen opens.
+    /// </summary>
     private static bool _pendingHighlight = false;
 
+    /// <summary>
+    /// Called when the mod is loaded. Initializes configuration, subscribes to game events,
+    /// and sets up reflection for map highlighting.
+    /// </summary>
     public static void ModLoaded()
     {
         Log.Warn("RouteSuggest: Mod loaded");
@@ -109,7 +147,10 @@ public static class RouteSuggest
         // Load configuration from file if available
         LoadConfig();
 
-        // listen to events
+        // Pretty print the current path configurations
+        PrintPathConfigs();
+
+        // Subscribe to game events
         var manager = RunManager.Instance;
         manager.RunStarted += OnRunStarted;
         manager.ActEntered += OnActEntered;
@@ -120,6 +161,10 @@ public static class RouteSuggest
         InitializeReflection();
     }
 
+    /// <summary>
+    /// Loads path configurations from RouteSuggestConfig.json if it exists.
+    /// Falls back to default PathConfigs if file is missing or invalid.
+    /// </summary>
     static void LoadConfig()
     {
         try
@@ -128,7 +173,7 @@ public static class RouteSuggest
             string directoryName = Path.GetDirectoryName(executablePath);
             string modsPath = Path.Combine(directoryName, "mods");
             string configPath = Path.Combine(modsPath, "RouteSuggestConfig.json");
-            
+
             if (!File.Exists(configPath))
             {
                 Log.Warn($"RouteSuggest: Config file not found at {configPath}, using default path configs");
@@ -142,7 +187,7 @@ public static class RouteSuggest
             };
 
             var configData = JsonSerializer.Deserialize<ConfigFile>(json, options);
-            
+
             if (configData?.SchemaVersion != 1)
             {
                 Log.Warn($"RouteSuggest: Unsupported schema version {configData?.SchemaVersion}, using defaults");
@@ -178,6 +223,38 @@ public static class RouteSuggest
         }
     }
 
+    /// <summary>
+    /// Pretty prints all current path configurations for debugging.
+    /// </summary>
+    static void PrintPathConfigs()
+    {
+        Log.Warn("RouteSuggest: Current Path Configurations:");
+        Log.Warn("==========================================");
+
+        foreach (var config in PathConfigs)
+        {
+            Log.Warn($"  Path: {config.Name}");
+            Log.Warn($"    Priority: {config.Priority}");
+            Log.Warn($"    Color: R={config.Color.R:F2}, G={config.Color.G:F2}, B={config.Color.B:F2}, A={config.Color.A:F2}");
+            Log.Warn($"    Scoring Weights:");
+
+            foreach (var weight in config.ScoringWeights.OrderBy(w => w.Key.ToString()))
+            {
+                Log.Warn($"      {weight.Key}: {weight.Value:+0;-0;0}");
+            }
+
+            Log.Warn("");
+        }
+
+        Log.Warn($"Total path types configured: {PathConfigs.Count}");
+        Log.Warn("==========================================");
+    }
+
+    /// <summary>
+    /// Parses a color string in hex format (#RGB or #RGBA) into a Godot Color.
+    /// </summary>
+    /// <param name="colorStr">Hex color string, e.g., "#FFD700" or "#FF0000FF"</param>
+    /// <returns>Parsed Color, or white if parsing fails.</returns>
     static Color ParseColor(string colorStr)
     {
         if (string.IsNullOrEmpty(colorStr))
@@ -210,6 +287,11 @@ public static class RouteSuggest
         return new Color(1f, 1f, 1f, 1f);
     }
 
+    /// <summary>
+    /// Parses scoring weights from the config file's string-keyed dictionary to MapPointType keys.
+    /// </summary>
+    /// <param name="weightsDict">Dictionary with string keys from JSON.</param>
+    /// <returns>Dictionary with MapPointType keys, containing valid entries only.</returns>
     static Dictionary<MapPointType, int> ParseScoringWeights(Dictionary<string, int> weightsDict)
     {
         var result = new Dictionary<MapPointType, int>();
@@ -229,31 +311,58 @@ public static class RouteSuggest
         return result;
     }
 
-    // Config file data classes for JSON deserialization
+    /// <summary>
+    /// Represents the root structure of the RouteSuggestConfig.json file.
+    /// </summary>
     private class ConfigFile
     {
+        /// <summary>
+        /// Schema version for config file compatibility. Currently must be 1.
+        /// </summary>
         [JsonPropertyName("schema_version")]
         public int SchemaVersion { get; set; }
 
+        /// <summary>
+        /// List of path configurations to load.
+        /// </summary>
         [JsonPropertyName("path_configs")]
         public List<PathConfigEntry> PathConfigs { get; set; }
     }
 
+    /// <summary>
+    /// Represents a single path configuration entry in the JSON config file.
+    /// </summary>
     private class PathConfigEntry
     {
+        /// <summary>
+        /// Name identifier for the path.
+        /// </summary>
         [JsonPropertyName("name")]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Hex color string (e.g., "#FFD700").
+        /// </summary>
         [JsonPropertyName("color")]
         public string Color { get; set; }
 
+        /// <summary>
+        /// Priority value - higher renders on top.
+        /// </summary>
         [JsonPropertyName("priority")]
         public int Priority { get; set; }
 
+        /// <summary>
+        /// Scoring weights as string-keyed dictionary (keys are MapPointType names).
+        /// </summary>
         [JsonPropertyName("scoring_weights")]
         public Dictionary<string, int> ScoringWeights { get; set; }
     }
 
+    /// <summary>
+    /// Initializes reflection to access the map screen's internal _paths field.
+    /// Required for highlighting path segments on the UI.
+    /// </summary>
     static void InitializeReflection()
     {
         try
@@ -277,6 +386,9 @@ public static class RouteSuggest
         }
     }
 
+    /// <summary>
+    /// Called when a new run starts. Stores the run state and calculates initial paths.
+    /// </summary>
     static void OnRunStarted(RunState runState)
     {
         Log.Warn("RouteSuggest: Run started");
@@ -284,24 +396,30 @@ public static class RouteSuggest
         UpdateBestPath();
     }
 
+    /// <summary>
+    /// Called when entering a new act. Recalculates paths and requests map highlighting.
+    /// </summary>
     static void OnActEntered()
     {
         Log.Warn("RouteSuggest: Act entered");
         UpdateBestPath();
-
-        // Request highlight when map screen opens
         RequestHighlightOnMapOpen();
     }
 
+    /// <summary>
+    /// Called when entering a room. Recalculates paths and requests map highlighting.
+    /// </summary>
     static void OnRoomEntered()
     {
         Log.Warn("RouteSuggest: Room entered");
         UpdateBestPath();
-
-        // Request highlight when map screen opens
         RequestHighlightOnMapOpen();
     }
 
+    /// <summary>
+    /// Requests path highlighting. If map screen is already open, highlights immediately.
+    /// Otherwise, subscribes to the Opened event to highlight when it opens.
+    /// </summary>
     static void RequestHighlightOnMapOpen()
     {
         Log.Warn("RouteSuggest: Requesting highlight when map opens");
@@ -329,6 +447,9 @@ public static class RouteSuggest
         }
     }
 
+    /// <summary>
+    /// Event handler for when the map screen opens. Applies pending highlights.
+    /// </summary>
     static void OnMapScreenOpened()
     {
         Log.Warn("RouteSuggest: Map screen opened event triggered");
@@ -353,12 +474,19 @@ public static class RouteSuggest
         HighlightBestPath();
     }
 
+    /// <summary>
+    /// Called when exiting a room. Recalculates paths for the new position.
+    /// </summary>
     static void OnRoomExited()
     {
         Log.Warn("RouteSuggest: Room exited");
         UpdateBestPath();
     }
 
+    /// <summary>
+    /// Calculates optimal paths for all configured path types from current position.
+    /// Uses CurrentMapPoint if available, otherwise falls back to StartingMapPoint.
+    /// </summary>
     static void UpdateBestPath()
     {
         var runState = RouteSuggest.RunState;
@@ -391,6 +519,13 @@ public static class RouteSuggest
         }
     }
 
+    /// <summary>
+    /// Finds the best path from startPoint to the Boss using the given configuration's scoring.
+    /// Uses DFS to enumerate all paths, sorts for reproducibility, and returns the highest scoring path.
+    /// </summary>
+    /// <param name="startPoint">Starting map point.</param>
+    /// <param name="config">Path configuration with scoring weights.</param>
+    /// <returns>The best path, or null if no paths found or startPoint is null.</returns>
     static List<MapPoint> FindBestPath(MapPoint startPoint, PathConfig config)
     {
         if (startPoint == null) return null;
@@ -446,6 +581,12 @@ public static class RouteSuggest
         return bestPath;
     }
 
+    /// <summary>
+    /// Recursive DFS helper to find all paths from current point to the Boss.
+    /// </summary>
+    /// <param name="current">Current map point.</param>
+    /// <param name="currentPath">Accumulated path so far.</param>
+    /// <param name="allPaths">Output list to collect all complete paths.</param>
     static void FindAllPathsToBoss(MapPoint current, List<MapPoint> currentPath, List<List<MapPoint>> allPaths)
     {
         if (current == null) return;
@@ -472,6 +613,10 @@ public static class RouteSuggest
         currentPath.RemoveAt(currentPath.Count - 1);
     }
 
+    /// <summary>
+    /// Highlights the calculated paths on the map screen. Higher priority paths render on top.
+    /// Uses reflection to access the map's internal path rendering data.
+    /// </summary>
     static void HighlightBestPath()
     {
         if (!_reflectionInitialized)
@@ -601,6 +746,10 @@ public static class RouteSuggest
         }
     }
 
+    /// <summary>
+    /// Clears all path highlighting by restoring original colors and scales.
+    /// Also cleans up invalid TextureRect entries from the cache.
+    /// </summary>
     static void ClearPathHighlighting()
     {
         try
