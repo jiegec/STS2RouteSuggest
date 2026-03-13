@@ -68,7 +68,8 @@ public static class RouteSuggest
                 { MapPointType.Treasure, 1 },
                 { MapPointType.Shop, 1 },
                 { MapPointType.Monster, -1 },
-                { MapPointType.Elite, -2 }
+                { MapPointType.Elite, -3 },
+                { MapPointType.Unknown, 0 }
             }
         },
         new PathConfig
@@ -81,9 +82,9 @@ public static class RouteSuggest
                 { MapPointType.RestSite, 1 },
                 { MapPointType.Treasure, 1 },
                 { MapPointType.Shop, 1 },
-                { MapPointType.Monster, 1 },
-                { MapPointType.Elite, 2 },
-                { MapPointType.Unknown, 1 }
+                { MapPointType.Monster, 2 },
+                { MapPointType.Elite, 3 },
+                { MapPointType.Unknown, 2 }
             }
         }
     };

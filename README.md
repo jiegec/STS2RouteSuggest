@@ -58,7 +58,7 @@ Minimizes encounters and prioritizes safety:
 | **Treasure**  | +1    | Free relic                     |
 | **Shop**      | +1    | Buy cards, relics, and potions |
 | **Monster**   | -1    | Avoid combat                   |
-| **Elite**     | -2    | Avoid hard encounters          |
+| **Elite**     | -3    | Avoid hard encounters          |
 | **Boss**      | 0     | Final destination              |
 
 ### Aggressive Path (Red)
@@ -70,14 +70,18 @@ Prioritizes combat rewards and unknown encounters:
 | **Rest Site** | +1    | Heal and upgrade cards         |
 | **Treasure**  | +1    | Free relic                     |
 | **Shop**      | +1    | Buy cards, relics, and potions |
-| **Monster**   | +1    | Gold and card rewards          |
-| **Elite**     | +2    | Relics and better rewards      |
-| **Unknown**   | +1    | Potential for combat           |
+| **Monster**   | +2    | Gold and card rewards          |
+| **Elite**     | +3    | Relics and better rewards      |
+| **Unknown**   | +2    | Potential for combat           |
 | **Boss**      | 0     | Final destination              |
 
 When both paths share an edge, it appears in gold.
 
 ## Changelog
+
+### Unreleased
+
+- Tuned the weights for safe/aggressive paths
 
 ### v1.2.0
 
