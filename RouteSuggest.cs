@@ -11,16 +11,82 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 
 namespace RouteSuggest;
 
+/// <summary>
+/// Configuration for a path type including scoring weights, color, and priority.
+/// </summary>
+public class PathConfig
+{
+    public string Name { get; set; }
+    public Color Color { get; set; }
+    /// <summary>
+    /// Higher priority paths are rendered on top of lower priority paths when they overlap.
+    /// </summary>
+    public int Priority { get; set; }
+    /// <summary>
+    /// Scoring weights for each room type. Positive = desirable, Negative = undesirable.
+    /// </summary>
+    public Dictionary<MapPointType, int> ScoringWeights { get; set; } = new Dictionary<MapPointType, int>();
+
+    public int CalculateScore(List<MapPoint> path)
+    {
+        int score = 0;
+        foreach (var point in path)
+        {
+            if (ScoringWeights.TryGetValue(point.PointType, out int weight))
+            {
+                score += weight;
+            }
+        }
+        return score;
+    }
+}
+
 [ModInitializer("ModLoaded")]
 public static class RouteSuggest
 {
     public static RunState RunState { get; private set; }
-    public static List<MapPoint> SafePath { get; private set; }
-    public static List<MapPoint> AggressivePath { get; private set; }
 
-    // Path highlighting colors
-    private static readonly Color SafePathColor = new Color(1f, 0.84f, 0f, 1f); // Gold
-    private static readonly Color AggressivePathColor = new Color(1f, 0f, 0f, 1f); // Red
+    /// <summary>
+    /// Dictionary of calculated paths for each configured path type.
+    /// Key is the path config name, value is the calculated path.
+    /// </summary>
+    public static Dictionary<string, List<MapPoint>> CalculatedPaths { get; private set; } = new Dictionary<string, List<MapPoint>>();
+
+    /// <summary>
+    /// List of configured path types. Add new entries here to support more path types.
+    /// </summary>
+    public static readonly List<PathConfig> PathConfigs = new List<PathConfig>
+    {
+        new PathConfig
+        {
+            Name = "Safe",
+            Color = new Color(1f, 0.84f, 0f, 1f), // Gold
+            Priority = 100, // Higher priority - shown over aggressive path
+            ScoringWeights = new Dictionary<MapPointType, int>
+            {
+                { MapPointType.RestSite, 1 },
+                { MapPointType.Treasure, 1 },
+                { MapPointType.Shop, 1 },
+                { MapPointType.Monster, -1 },
+                { MapPointType.Elite, -2 }
+            }
+        },
+        new PathConfig
+        {
+            Name = "Aggressive",
+            Color = new Color(1f, 0f, 0f, 1f), // Red
+            Priority = 50, // Lower priority - safe path shown over this
+            ScoringWeights = new Dictionary<MapPointType, int>
+            {
+                { MapPointType.RestSite, 1 },
+                { MapPointType.Treasure, 1 },
+                { MapPointType.Shop, 1 },
+                { MapPointType.Monster, 1 },
+                { MapPointType.Elite, 2 },
+                { MapPointType.Unknown, 1 }
+            }
+        }
+    };
 
     // Store original colors for each path tick to restore later
     private static readonly Dictionary<TextureRect, (Color color, Vector2 scale)> OriginalTickProperties = new Dictionary<TextureRect, (Color, Vector2)>();
@@ -165,35 +231,26 @@ public static class RouteSuggest
         {
             Log.Warn($"RouteSuggest: At map point {startPoint.coord}");
 
-            // Find both safe and aggressive paths
-            var safePath = FindBestPath(startPoint, useAggressiveScoring: false);
-            var aggressivePath = FindBestPath(startPoint, useAggressiveScoring: true);
-
-            if (safePath != null)
+            // Calculate paths for all configured path types
+            CalculatedPaths.Clear();
+            foreach (var config in PathConfigs)
             {
-                int score = CalculatePathScore(safePath, useAggressiveScoring: false);
-                Log.Warn($"RouteSuggest: Safe path found with score {score}:");
-                foreach (var point in safePath)
+                var path = FindBestPath(startPoint, config);
+                if (path != null)
                 {
-                    Log.Warn($"RouteSuggest:   coord={point.coord}, type={point.PointType}");
+                    int score = config.CalculateScore(path);
+                    Log.Warn($"RouteSuggest: {config.Name} path found with score {score}:");
+                    foreach (var point in path)
+                    {
+                        Log.Warn($"RouteSuggest:   coord={point.coord}, type={point.PointType}");
+                    }
+                    CalculatedPaths[config.Name] = path;
                 }
-                SafePath = safePath;
-            }
-
-            if (aggressivePath != null)
-            {
-                int score = CalculatePathScore(aggressivePath, useAggressiveScoring: true);
-                Log.Warn($"RouteSuggest: Aggressive path found with score {score}:");
-                foreach (var point in aggressivePath)
-                {
-                    Log.Warn($"RouteSuggest:   coord={point.coord}, type={point.PointType}");
-                }
-                AggressivePath = aggressivePath;
             }
         }
     }
 
-    static List<MapPoint> FindBestPath(MapPoint startPoint, bool useAggressiveScoring)
+    static List<MapPoint> FindBestPath(MapPoint startPoint, PathConfig config)
     {
         if (startPoint == null) return null;
 
@@ -235,7 +292,7 @@ public static class RouteSuggest
 
         for (int i = 0; i < allPaths.Count; i++)
         {
-            int score = CalculatePathScore(allPaths[i], useAggressiveScoring);
+            int score = config.CalculateScore(allPaths[i]);
             Log.Warn($"RouteSuggest: Path {i + 1} score: {score}");
 
             if (score > bestScore)
@@ -274,35 +331,6 @@ public static class RouteSuggest
         currentPath.RemoveAt(currentPath.Count - 1);
     }
 
-    static int CalculatePathScore(List<MapPoint> path, bool useAggressiveScoring)
-    {
-        int score = 0;
-        foreach (var point in path)
-        {
-            switch (point.PointType)
-            {
-                case MapPointType.RestSite:
-                case MapPointType.Treasure:
-                case MapPointType.Shop:
-                    score += 1;
-                    break;
-                case MapPointType.Monster:
-                    score += useAggressiveScoring ? 1 : -1;
-                    break;
-                case MapPointType.Elite:
-                    score += useAggressiveScoring ? 2 : -2;
-                    break;
-                case MapPointType.Unknown:
-                    if (useAggressiveScoring)
-                    {
-                        score += 1;
-                    }
-                    break;
-            }
-        }
-        return score;
-    }
-
     static void HighlightBestPath()
     {
         if (!_reflectionInitialized)
@@ -310,9 +338,9 @@ public static class RouteSuggest
             Log.Warn("RouteSuggest: Highlighting skipped - reflection not initialized");
             return;
         }
-        if (SafePath == null && AggressivePath == null)
+        if (CalculatedPaths.Count == 0)
         {
-            Log.Warn("RouteSuggest: Highlighting skipped - both paths are null");
+            Log.Warn("RouteSuggest: Highlighting skipped - no paths calculated");
             return;
         }
 
@@ -342,37 +370,54 @@ public static class RouteSuggest
                 return;
             }
 
-            // Build sets of path segments for both paths
-            var safeSegments = new HashSet<(MapCoord, MapCoord)>();
-            var aggressiveSegments = new HashSet<(MapCoord, MapCoord)>();
-
-            if (SafePath != null && SafePath.Count >= 2)
+            // Build segment sets for each path type
+            var pathSegments = new Dictionary<string, HashSet<(MapCoord, MapCoord)>>();
+            foreach (var kvp in CalculatedPaths)
             {
-                for (int i = 0; i < SafePath.Count - 1; i++)
+                var path = kvp.Value;
+                if (path != null && path.Count >= 2)
                 {
-                    safeSegments.Add((SafePath[i].coord, SafePath[i + 1].coord));
+                    var segments = new HashSet<(MapCoord, MapCoord)>();
+                    for (int i = 0; i < path.Count - 1; i++)
+                    {
+                        segments.Add((path[i].coord, path[i + 1].coord));
+                    }
+                    pathSegments[kvp.Key] = segments;
                 }
             }
 
-            if (AggressivePath != null && AggressivePath.Count >= 2)
+            // Assign color to each segment based on priority (highest priority wins)
+            var segmentColors = new Dictionary<(MapCoord, MapCoord), Color>();
+            var sortedConfigs = PathConfigs.OrderByDescending(c => c.Priority).ToList();
+
+            foreach (var config in sortedConfigs)
             {
-                for (int i = 0; i < AggressivePath.Count - 1; i++)
+                if (!pathSegments.TryGetValue(config.Name, out var segments))
+                    continue;
+
+                foreach (var segment in segments)
                 {
-                    aggressiveSegments.Add((AggressivePath[i].coord, AggressivePath[i + 1].coord));
+                    // Normalize segment direction for deduplication
+                    var normalizedKey = segment.Item1.CompareTo(segment.Item2) <= 0
+                        ? segment
+                        : (segment.Item2, segment.Item1);
+
+                    // Assign color if not already assigned (higher priority paths win)
+                    if (!segmentColors.ContainsKey(normalizedKey))
+                    {
+                        segmentColors[normalizedKey] = config.Color;
+                    }
                 }
             }
 
-            // Find all unique segments
-            var allSegments = new HashSet<(MapCoord, MapCoord)>();
-            allSegments.UnionWith(safeSegments);
-            allSegments.UnionWith(aggressiveSegments);
-
-            // Highlight each path segment
-            int highlightedSegments = 0;
-            foreach (var segment in allSegments)
+            // Apply highlighting to all unique segments
+            foreach (var kvp in segmentColors)
             {
+                var segment = kvp.Key;
+                var color = kvp.Value;
+
                 // Try both directions (from->to and to->from)
-                var key1 = (segment.Item1, segment.Item2);
+                var key1 = segment;
                 var key2 = (segment.Item2, segment.Item1);
 
                 object pathTicks = null;
@@ -387,26 +432,9 @@ public static class RouteSuggest
 
                 if (pathTicks != null)
                 {
-                    // pathTicks is IReadOnlyList<TextureRect>
                     var ticks = pathTicks as IReadOnlyList<TextureRect>;
                     if (ticks != null)
                     {
-                        // Determine color: gold for safe or overlap, red for aggressive only
-                        Color color;
-                        bool inSafe = safeSegments.Contains(segment) ||
-                                     safeSegments.Contains((segment.Item2, segment.Item1));
-                        bool inAggressive = aggressiveSegments.Contains(segment) ||
-                                           aggressiveSegments.Contains((segment.Item2, segment.Item1));
-
-                        if (inSafe)
-                        {
-                            color = SafePathColor; // Gold - safe path or overlap
-                        }
-                        else
-                        {
-                            color = AggressivePathColor; // Red - aggressive only
-                        }
-
                         foreach (var tick in ticks)
                         {
                             if (tick != null && GodotObject.IsInstanceValid(tick))
@@ -417,15 +445,14 @@ public static class RouteSuggest
                                     OriginalTickProperties[tick] = (tick.Modulate, tick.Scale);
                                 }
                                 tick.Modulate = color;
-                                tick.Scale = new Vector2(1.4f, 1.4f); // Make slightly larger
+                                tick.Scale = new Vector2(1.4f, 1.4f);
                             }
                         }
-                        highlightedSegments++;
                     }
                 }
             }
 
-            Log.Warn($"RouteSuggest: Highlighted {highlightedSegments} path segments");
+            Log.Warn($"RouteSuggest: Highlighted {segmentColors.Count} unique path segments");
         }
         catch (Exception ex)
         {
