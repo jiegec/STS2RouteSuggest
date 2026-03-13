@@ -27,6 +27,9 @@ public static class RouteSuggest
     private static FieldInfo _pathsField;
     private static bool _reflectionInitialized = false;
 
+    // Track if we need to highlight when map opens
+    private static bool _pendingHighlight = false;
+
     public static void ModLoaded()
     {
         Log.Warn("RouteSuggest: Mod loaded");
@@ -69,85 +72,76 @@ public static class RouteSuggest
     {
         Log.Warn("RouteSuggest: Run started");
         RouteSuggest.RunState = runState;
-        PrintInfo();
+        UpdateBestPath();
     }
 
     static void OnActEntered()
     {
         Log.Warn("RouteSuggest: Act entered");
-        PrintInfo();
+        UpdateBestPath();
 
-        // Try to apply path highlighting after a delay (when map screen opens)
-        ScheduleHighlight(delay: 1.5f);
+        // Request highlight when map screen opens
+        RequestHighlightOnMapOpen();
     }
 
     static void OnRoomEntered()
     {
         Log.Warn("RouteSuggest: Room entered");
-        PrintInfo();
+        UpdateBestPath();
 
-        // Try to apply path highlighting after a short delay (when map might be visible)
-        ScheduleHighlight(delay: 0.5f);
+        // Request highlight when map screen opens
+        RequestHighlightOnMapOpen();
     }
 
-    static void ScheduleHighlight(float delay)
+    static void RequestHighlightOnMapOpen()
     {
-        Log.Warn($"RouteSuggest: Scheduling highlight with {delay}s delay");
-        ScheduleHighlightWithRetry(delay, 0);
-    }
+        Log.Warn("RouteSuggest: Requesting highlight when map opens");
+        _pendingHighlight = true;
 
-    static void ScheduleHighlightWithRetry(float delay, int attempt)
-    {
-        const int maxAttempts = 10;
-
-        if (attempt >= maxAttempts)
+        // Subscribe to map screen opened event
+        var mapScreen = NMapScreen.Instance;
+        if (mapScreen != null)
         {
-            Log.Warn($"RouteSuggest: Giving up after {maxAttempts} attempts to highlight path");
-            return;
-        }
-
-        var timer = new Timer();
-        timer.WaitTime = delay;
-        timer.OneShot = true;
-        timer.Connect(Timer.SignalName.Timeout, Callable.From(() =>
-        {
-            Log.Warn($"RouteSuggest: Timer triggered (attempt {attempt + 1}), applying highlight");
-
-            // Check if map screen is open
-            var mapScreen = NMapScreen.Instance;
-            if (mapScreen == null || !mapScreen.IsOpen)
-            {
-                Log.Warn($"RouteSuggest: Map screen not ready, retrying...");
-                timer.QueueFree();
-                ScheduleHighlightWithRetry(0.5f, attempt + 1);
-                return;
-            }
-
-            HighlightBestPath();
-            timer.QueueFree();
-        }));
-
-        // Add timer to scene tree
-        if (Engine.GetMainLoop() is SceneTree tree)
-        {
-            tree.Root.CallDeferred("add_child", timer);
-            timer.CallDeferred("start");
-            Log.Warn($"RouteSuggest: Timer started (attempt {attempt + 1}/{maxAttempts})");
+            mapScreen.Opened += OnMapScreenOpened;
+            Log.Warn("RouteSuggest: Subscribed to map screen Opened event");
         }
         else
         {
-            Log.Warn("RouteSuggest: Failed to start timer - could not get scene tree");
-            timer.QueueFree();
+            Log.Warn("RouteSuggest: NMapScreen.Instance is null, will retry on next act/room");
         }
+    }
+
+    static void OnMapScreenOpened()
+    {
+        Log.Warn("RouteSuggest: Map screen opened event triggered");
+
+        if (!_pendingHighlight)
+        {
+            Log.Warn("RouteSuggest: No pending highlight, ignoring");
+            return;
+        }
+
+        _pendingHighlight = false;
+
+        // Unsubscribe from the event
+        var mapScreen = NMapScreen.Instance;
+        if (mapScreen != null)
+        {
+            mapScreen.Opened -= OnMapScreenOpened;
+            Log.Warn("RouteSuggest: Unsubscribed from map screen Opened event");
+        }
+
+        // Apply the highlight
+        HighlightBestPath();
     }
 
     static void OnRoomExited()
     {
         Log.Warn("RouteSuggest: Room exited");
-        PrintInfo();
+        UpdateBestPath();
     }
 
-    static void PrintInfo()
+    static void UpdateBestPath()
     {
         var runState = RouteSuggest.RunState;
         Log.Warn($"RouteSuggest: Current act index {runState.CurrentActIndex}");
