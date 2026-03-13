@@ -93,22 +93,46 @@ public static class RouteSuggest
     static void ScheduleHighlight(float delay)
     {
         Log.Warn($"RouteSuggest: Scheduling highlight with {delay}s delay");
+        ScheduleHighlightWithRetry(delay, 0);
+    }
+
+    static void ScheduleHighlightWithRetry(float delay, int attempt)
+    {
+        const int maxAttempts = 10;
+
+        if (attempt >= maxAttempts)
+        {
+            Log.Warn($"RouteSuggest: Giving up after {maxAttempts} attempts to highlight path");
+            return;
+        }
 
         var timer = new Timer();
         timer.WaitTime = delay;
         timer.OneShot = true;
         timer.Connect(Timer.SignalName.Timeout, Callable.From(() =>
         {
-            Log.Warn("RouteSuggest: Timer triggered, applying highlight");
+            Log.Warn($"RouteSuggest: Timer triggered (attempt {attempt + 1}), applying highlight");
+
+            // Check if map screen is open
+            var mapScreen = NMapScreen.Instance;
+            if (mapScreen == null || !mapScreen.IsOpen)
+            {
+                Log.Warn($"RouteSuggest: Map screen not ready, retrying...");
+                timer.QueueFree();
+                ScheduleHighlightWithRetry(0.5f, attempt + 1);
+                return;
+            }
+
             HighlightBestPath();
             timer.QueueFree();
         }));
+
         // Add timer to scene tree
         if (Engine.GetMainLoop() is SceneTree tree)
         {
             tree.Root.CallDeferred("add_child", timer);
             timer.CallDeferred("start");
-            Log.Warn("RouteSuggest: Timer started");
+            Log.Warn($"RouteSuggest: Timer started (attempt {attempt + 1}/{maxAttempts})");
         }
         else
         {
