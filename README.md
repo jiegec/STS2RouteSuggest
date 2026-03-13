@@ -4,6 +4,8 @@
 
 A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in the UI.
 
+Supported game version: v0.98.3 and v0.99(public-beta).
+
 ## Features
 
 - **Automatic Path Calculation**: Computes the best route from your current position to the Boss
