@@ -1,5 +1,7 @@
 # RouteSuggest - Slay the Spire 2 Mod
 
+![](screenshot.png)
+
 A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in the UI.
 
 ## Features
@@ -10,7 +12,7 @@ A mod for Slay the Spire 2 that suggests the optimal path through the map and hi
 
 ## Installation
 
-1. Download the latest release from the releases page
+1. Download the latest release
 2. Extract the mod files to your Slay the Spire 2 mods folder (`mods` folder should reside in the same folder as the game executable):
    - **macOS**: `~/Library/Application\ Support/Steam/steamapps/common/Slay\ the\ Spire\ 2/SlayTheSpire2.app/Contents/MacOS/mods/`
    - **Linux**: `~/.steam/steam/steamapps/common/Slay\ the\ Spire\ 2/mods`
