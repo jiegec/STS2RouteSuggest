@@ -124,7 +124,7 @@ If the config file is missing or invalid, default path configs are used.
 
 ## Changelog
 
-### Unreleased
+### v1.3.0
 
 - Tuned the default weights for safe/aggressive paths
 - Added configurable paths via `mods/RouteSuggestConfig.json`
