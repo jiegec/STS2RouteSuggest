@@ -79,7 +79,7 @@ When both paths share an edge, it appears in gold.
 
 ## Changelog
 
-### Unreleased
+### v1.1.0
 
 - Added dual path mode: safe path (gold) and aggressive path (red)
 - Safe path minimizes combat encounters
