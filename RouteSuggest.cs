@@ -98,10 +98,19 @@ public static class RouteSuggest
     static void RequestHighlightOnMapOpen()
     {
         Log.Warn("RouteSuggest: Requesting highlight when map opens");
+
+        // Check if map screen is already open
+        var mapScreen = NMapScreen.Instance;
+        if (mapScreen != null && mapScreen.IsOpen)
+        {
+            Log.Warn("RouteSuggest: Map screen is already open, highlighting immediately");
+            HighlightBestPath();
+            return;
+        }
+
         _pendingHighlight = true;
 
         // Subscribe to map screen opened event
-        var mapScreen = NMapScreen.Instance;
         if (mapScreen != null)
         {
             mapScreen.Opened += OnMapScreenOpened;
@@ -148,13 +157,17 @@ public static class RouteSuggest
         var runState = RouteSuggest.RunState;
         Log.Warn($"RouteSuggest: Current act index {runState.CurrentActIndex}");
         Log.Warn($"RouteSuggest: Floor {runState.ActFloor}/{runState.TotalFloor}");
-        if (runState.CurrentMapPoint != null)
+
+        // Get current position, fallback to starting point if not set
+        var startPoint = runState.CurrentMapPoint ?? runState.Map?.StartingMapPoint;
+
+        if (startPoint != null)
         {
-            Log.Warn($"RouteSuggest: At map point {runState.CurrentMapPoint.coord}");
+            Log.Warn($"RouteSuggest: At map point {startPoint.coord}");
 
             // Find both safe and aggressive paths
-            var safePath = FindBestPath(runState.CurrentMapPoint, useAggressiveScoring: false);
-            var aggressivePath = FindBestPath(runState.CurrentMapPoint, useAggressiveScoring: true);
+            var safePath = FindBestPath(startPoint, useAggressiveScoring: false);
+            var aggressivePath = FindBestPath(startPoint, useAggressiveScoring: true);
 
             if (safePath != null)
             {
