@@ -256,6 +256,8 @@ public static class RouteSuggest
                     {
                         ResetToDefaultPathConfigs();
                         SaveConfiguration();
+                        UpdateBestPath();
+                        RequestHighlightOnMapOpen();
 
                         // Re-register to refresh UI
                         RegisterModConfigViaReflection();
@@ -286,6 +288,8 @@ public static class RouteSuggest
                         };
                         PathConfigs.Add(newConfig);
                         SaveConfiguration();
+                        UpdateBestPath();
+                        RequestHighlightOnMapOpen();
 
                         // Re-register to refresh UI
                         RegisterModConfigViaReflection();
@@ -319,6 +323,8 @@ public static class RouteSuggest
                         {
                             PathConfigs.RemoveAt(pathIndex);
                             SaveConfiguration();
+                            UpdateBestPath();
+                            RequestHighlightOnMapOpen();
 
                             // Re-register to refresh UI
                             RegisterModConfigViaReflection();
@@ -334,6 +340,8 @@ public static class RouteSuggest
                     {
                         config.Name = (string)value;
                         SaveConfiguration();
+                        UpdateBestPath();
+                        RequestHighlightOnMapOpen();
                     }));
 
                 // Color (hex input)
@@ -346,6 +354,8 @@ public static class RouteSuggest
                     {
                         config.Color = ParseColor((string)value);
                         SaveConfiguration();
+                        UpdateBestPath();
+                        RequestHighlightOnMapOpen();
                     }));
 
                 // Priority
@@ -359,6 +369,8 @@ public static class RouteSuggest
                     {
                         config.Priority = (int)(float)value;
                         SaveConfiguration();
+                        UpdateBestPath();
+                        RequestHighlightOnMapOpen();
                     }));
 
                 // Scoring weights section header
@@ -426,6 +438,8 @@ public static class RouteSuggest
                         {
                             config.ScoringWeights[capturedRoomType] = (int)(float)value;
                             SaveConfiguration();
+                            UpdateBestPath();
+                            RequestHighlightOnMapOpen();
                         }));
                 }
 
