@@ -150,6 +150,7 @@ If the config file is missing or invalid, default path configs are used.
   - Configure name, color (hex input), priority, and scoring weights via GUI
   - Add/remove custom path types
   - Changes saved to JSON automatically
+  - Use slider instead of button for now
 
 ### v1.3.0
 
