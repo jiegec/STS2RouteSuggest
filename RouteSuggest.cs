@@ -215,6 +215,8 @@ public static class RouteSuggest
             object MakeEntry(string key, string label, object type,
                 object defaultValue = null, float min = 0, float max = 100, float step = 1,
                 string format = "F0", string[] options = null,
+                Dictionary<string, string> labels = null,
+                Dictionary<string, string> descriptions = null,
                 Action<object> onChanged = null)
             {
                 var entry = Activator.CreateInstance(entryType);
@@ -229,6 +231,10 @@ public static class RouteSuggest
                 entryType.GetProperty("Format")?.SetValue(entry, format);
                 if (options != null)
                     entryType.GetProperty("Options")?.SetValue(entry, options);
+                if (labels != null)
+                    entryType.GetProperty("Labels")?.SetValue(entry, labels);
+                if (descriptions != null)
+                    entryType.GetProperty("Descriptions")?.SetValue(entry, descriptions);
                 if (onChanged != null)
                     entryType.GetProperty("OnChanged")?.SetValue(entry, onChanged);
                 return entry;
@@ -237,11 +243,13 @@ public static class RouteSuggest
             // Helper to get ConfigType enum value
             object GetConfigType(string name) => Enum.Parse(configType, name);
 
-            // Reset to defauls logic
+            // Reset to defaults logic
             entries.Add(MakeEntry("__reset_default", "Reset to defaults",
                 GetConfigType("Slider"),
                 defaultValue: 1f,
                 min: 0, max: 1, step: 1, format: "F0",
+                labels: new() { { "zhs", "重置为默认值" } },
+                descriptions: new() { { "en", "Slide to 1 to reset all configurations to default" }, { "zhs", "滑到 1 以重置所有配置为默认值" } },
                 onChanged: (value) =>
                 {
                     if ((int)(float)value == 1)
@@ -255,13 +263,16 @@ public static class RouteSuggest
                 }));
 
             // Path Management section at the top
-            entries.Add(MakeEntry("", "Path Management", GetConfigType("Header")));
+            entries.Add(MakeEntry("", "Path Management", GetConfigType("Header"),
+                labels: new() { { "zhs", "路径管理" } }));
 
             // Slider to add new path (0->1 triggers add)
             entries.Add(MakeEntry("__add_path", "Add New Path (slide to 1)",
                 GetConfigType("Slider"),
                 defaultValue: 0f,
                 min: 0, max: 1, step: 1, format: "F0",
+                labels: new() { { "zhs", "添加新路径 (滑到 1)" } },
+                descriptions: new() { { "en", "Slide to 1 to add a new path configuration" }, { "zhs", "滑到 1 以添加新的路径配置" } },
                 onChanged: (value) =>
                 {
                     if ((int)(float)value == 1)
@@ -290,13 +301,18 @@ public static class RouteSuggest
                 var pathIndex = i;
 
                 // Path header with remove slider
-                entries.Add(MakeEntry("", $"Path {i + 1}: {config.Name}", GetConfigType("Header")));
+                entries.Add(MakeEntry("", $"Path {i + 1}",
+                    GetConfigType("Header"),
+                    labels: new() { { "zhs", $"路径 {i + 1}" } }
+                ));
 
                 // Remove this path slider (0 = keep, 1 = remove)
                 entries.Add(MakeEntry($"path_{i}_remove", "Remove Path (0=keep, 1=remove)",
                     GetConfigType("Slider"),
                     defaultValue: 0f,
                     min: 0, max: 1, step: 1, format: "F0",
+                    labels: new() { { "zhs", "删除路径 (0=保留, 1=删除)" } },
+                    descriptions: new() { { "en", "Slide to 1 to remove this path configuration" }, { "zhs", "滑到 1 以删除此路径配置" } },
                     onChanged: (value) =>
                     {
                         if ((int)(float)value == 1)
@@ -312,6 +328,8 @@ public static class RouteSuggest
                 // Name
                 entries.Add(MakeEntry($"path_{i}_name", "Name", GetConfigType("TextInput"),
                     defaultValue: config.Name,
+                    labels: new() { { "zhs", "名称" } },
+                    descriptions: new() { { "en", "The name of this path" }, { "zhs", "此路径的名称" } },
                     onChanged: (value) =>
                     {
                         config.Name = (string)value;
@@ -322,6 +340,8 @@ public static class RouteSuggest
                 entries.Add(MakeEntry($"path_{i}_color", "Color (hex, e.g., #FFD700)",
                     GetConfigType("TextInput"),
                     defaultValue: $"#{config.Color.ToHtml(false)}",
+                    labels: new() { { "zhs", "颜色 (十六进制, 如 #FFD700)" } },
+                    descriptions: new() { { "en", "Hex color code for path highlighting" }, { "zhs", "用于路径高亮的十六进制颜色代码" } },
                     onChanged: (value) =>
                     {
                         config.Color = ParseColor((string)value);
@@ -333,6 +353,8 @@ public static class RouteSuggest
                     GetConfigType("Slider"),
                     defaultValue: (float)config.Priority,
                     min: 0, max: 200, step: 10, format: "F0",
+                    labels: new() { { "zhs", "优先级 (越高越靠前)" } },
+                    descriptions: new() { { "en", "Higher priority paths are rendered on top of lower priority paths" }, { "zhs", "优先级高的路径会覆盖优先级低的路径" } },
                     onChanged: (value) =>
                     {
                         config.Priority = (int)(float)value;
@@ -340,7 +362,8 @@ public static class RouteSuggest
                     }));
 
                 // Scoring weights section header
-                entries.Add(MakeEntry("", "Scoring Weights", GetConfigType("Header")));
+                entries.Add(MakeEntry("", "Scoring Weights", GetConfigType("Header"),
+                    labels: new() { { "zhs", "评分权重" } }));
 
                 // Add weights for each room type
                 var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
@@ -351,10 +374,54 @@ public static class RouteSuggest
                         weight = 0;
 
                     var capturedRoomType = roomType;
+                    var roomLabels = new Dictionary<string, string>
+                    {
+                        { "en", roomType.ToString() }
+                    };
+                    var roomDescriptions = new Dictionary<string, string>
+                    {
+                        { "en", $"Scoring weight for {roomType} rooms" }
+                    };
+
+                    // Add Chinese translations for room types
+                    switch (roomType)
+                    {
+                        case MapPointType.RestSite:
+                            roomLabels["zhs"] = "休息处";
+                            roomDescriptions["zhs"] = "休息处房间的评分权重";
+                            break;
+                        case MapPointType.Treasure:
+                            roomLabels["zhs"] = "宝箱";
+                            roomDescriptions["zhs"] = "宝箱房间的评分权重";
+                            break;
+                        case MapPointType.Shop:
+                            roomLabels["zhs"] = "商店";
+                            roomDescriptions["zhs"] = "商店房间的评分权重";
+                            break;
+                        case MapPointType.Monster:
+                            roomLabels["zhs"] = "普通敌人";
+                            roomDescriptions["zhs"] = "普通敌人房间的评分权重";
+                            break;
+                        case MapPointType.Elite:
+                            roomLabels["zhs"] = "精英敌人";
+                            roomDescriptions["zhs"] = "精英敌人房间的评分权重";
+                            break;
+                        case MapPointType.Unknown:
+                            roomLabels["zhs"] = "未知";
+                            roomDescriptions["zhs"] = "未知房间的评分权重";
+                            break;
+                        case MapPointType.Boss:
+                            roomLabels["zhs"] = "Boss";
+                            roomDescriptions["zhs"] = "Boss 房间的评分权重";
+                            break;
+                    }
+
                     entries.Add(MakeEntry($"path_{i}_weight_{roomType}", roomType.ToString(),
                         GetConfigType("Slider"),
                         defaultValue: (float)weight,
                         min: -100, max: 100, step: 1, format: "F0",
+                        labels: roomLabels,
+                        descriptions: roomDescriptions,
                         onChanged: (value) =>
                         {
                             config.ScoringWeights[capturedRoomType] = (int)(float)value;
