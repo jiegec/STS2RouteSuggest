@@ -255,9 +255,7 @@ public static class RouteSuggest
                     if ((int)(float)value == 1)
                     {
                         ResetToDefaultPathConfigs();
-                        SaveConfiguration();
-                        UpdateBestPath();
-                        RequestHighlightOnMapOpen();
+                        SaveAndUpdatePath();
 
                         // Re-register to refresh UI
                         RegisterModConfigViaReflection();
@@ -287,9 +285,7 @@ public static class RouteSuggest
                             ScoringWeights = new Dictionary<MapPointType, int>()
                         };
                         PathConfigs.Add(newConfig);
-                        SaveConfiguration();
-                        UpdateBestPath();
-                        RequestHighlightOnMapOpen();
+                        SaveAndUpdatePath();
 
                         // Re-register to refresh UI
                         RegisterModConfigViaReflection();
@@ -322,9 +318,7 @@ public static class RouteSuggest
                         if ((int)(float)value == 1)
                         {
                             PathConfigs.RemoveAt(pathIndex);
-                            SaveConfiguration();
-                            UpdateBestPath();
-                            RequestHighlightOnMapOpen();
+                            SaveAndUpdatePath();
 
                             // Re-register to refresh UI
                             RegisterModConfigViaReflection();
@@ -339,9 +333,7 @@ public static class RouteSuggest
                     onChanged: (value) =>
                     {
                         config.Name = (string)value;
-                        SaveConfiguration();
-                        UpdateBestPath();
-                        RequestHighlightOnMapOpen();
+                        SaveAndUpdatePath();
                     }));
 
                 // Color (hex input)
@@ -353,9 +345,7 @@ public static class RouteSuggest
                     onChanged: (value) =>
                     {
                         config.Color = ParseColor((string)value);
-                        SaveConfiguration();
-                        UpdateBestPath();
-                        RequestHighlightOnMapOpen();
+                        SaveAndUpdatePath();
                     }));
 
                 // Priority
@@ -368,9 +358,7 @@ public static class RouteSuggest
                     onChanged: (value) =>
                     {
                         config.Priority = (int)(float)value;
-                        SaveConfiguration();
-                        UpdateBestPath();
-                        RequestHighlightOnMapOpen();
+                        SaveAndUpdatePath();
                     }));
 
                 // Scoring weights section header
@@ -437,9 +425,7 @@ public static class RouteSuggest
                         onChanged: (value) =>
                         {
                             config.ScoringWeights[capturedRoomType] = (int)(float)value;
-                            SaveConfiguration();
-                            UpdateBestPath();
-                            RequestHighlightOnMapOpen();
+                            SaveAndUpdatePath();
                         }));
                 }
 
@@ -828,6 +814,17 @@ public static class RouteSuggest
         {
             Log.Warn("RouteSuggest: NMapScreen.Instance is null, will retry on next act/room");
         }
+    }
+
+    /// <summary>
+    /// Convenience function that saves configuration, updates best path, and requests map highlight.
+    /// Wraps the three common operations that are frequently called together.
+    /// </summary>
+    static void SaveAndUpdatePath()
+    {
+        SaveConfiguration();
+        UpdateBestPath();
+        RequestHighlightOnMapOpen();
     }
 
     /// <summary>
