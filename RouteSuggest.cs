@@ -237,6 +237,23 @@ public static class RouteSuggest
             // Helper to get ConfigType enum value
             object GetConfigType(string name) => Enum.Parse(configType, name);
 
+            // Reset to defauls logic
+            entries.Add(MakeEntry("__reset_default", "Reset to defaults",
+                GetConfigType("Slider"),
+                defaultValue: 1f,
+                min: 0, max: 1, step: 1, format: "F0",
+                onChanged: (value) =>
+                {
+                    if ((int)(float)value == 1)
+                    {
+                        ResetToDefaultPathConfigs();
+                        SaveConfiguration();
+
+                        // Re-register to refresh UI
+                        RegisterModConfigViaReflection();
+                    }
+                }));
+
             // Path Management section at the top
             entries.Add(MakeEntry("", "Path Management", GetConfigType("Header")));
 
@@ -361,6 +378,9 @@ public static class RouteSuggest
             registerMethod!.Invoke(null, new object[] { "RouteSuggest", "RouteSuggest", entriesArray });
 
             Log.Warn($"RouteSuggest: Registered {entries.Count()} entries with ModConfig (via reflection)");
+
+            var method = apiType.GetMethod("SetValue")!;
+            method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", 0f });
         }
         catch (Exception ex)
         {
