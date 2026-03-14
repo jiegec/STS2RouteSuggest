@@ -142,12 +142,22 @@ public static class RouteSuggest
     private static bool _pendingHighlight = false;
 
     /// <summary>
+    /// Logs a message with a timestamp prefix.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    private static void LogWithTimestamp(string message)
+    {
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        Log.Warn($"[{timestamp}] RouteSuggest: {message}");
+    }
+
+    /// <summary>
     /// Called when the mod is loaded. Initializes configuration, subscribes to game events,
     /// and sets up reflection for map highlighting.
     /// </summary>
     public static void ModLoaded()
     {
-        Log.Warn("RouteSuggest: Mod loaded");
+        LogWithTimestamp("Mod loaded");
 
         // Initialize PathConfigs from defaults
         PathConfigs = new List<PathConfig>();
@@ -205,7 +215,7 @@ public static class RouteSuggest
 
             if (apiType == null || entryType == null || configType == null)
             {
-                Log.Warn("RouteSuggest: ModConfig not found, skipping GUI registration");
+                LogWithTimestamp("ModConfig not found, skipping GUI registration");
                 return;
             }
 
@@ -444,14 +454,14 @@ public static class RouteSuggest
                 new[] { typeof(string), typeof(string), entryType.MakeArrayType() });
             registerMethod!.Invoke(null, new object[] { "RouteSuggest", "RouteSuggest", entriesArray });
 
-            Log.Warn($"RouteSuggest: Registered {entries.Count()} entries with ModConfig (via reflection)");
+            LogWithTimestamp($"Registered {entries.Count()} entries with ModConfig (via reflection)");
 
             var method = apiType.GetMethod("SetValue")!;
             method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", 0f });
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Failed to register with ModConfig: {ex.Message}");
+            LogWithTimestamp($"Failed to register with ModConfig: {ex.Message}");
         }
     }
 
@@ -501,11 +511,11 @@ public static class RouteSuggest
             string json = JsonSerializer.Serialize(configData, options);
             File.WriteAllText(configPath, json);
 
-            Log.Warn($"RouteSuggest: Configuration saved to {configPath}");
+            LogWithTimestamp($"Configuration saved to {configPath}");
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Failed to save configuration: {ex.Message}");
+            LogWithTimestamp($"Failed to save configuration: {ex.Message}");
         }
     }
 
@@ -527,7 +537,7 @@ public static class RouteSuggest
             };
             PathConfigs.Add(config);
         }
-        Log.Warn("RouteSuggest: Reset to default path configurations");
+        LogWithTimestamp("Reset to default path configurations");
     }
 
     /// <summary>
@@ -545,7 +555,7 @@ public static class RouteSuggest
 
             if (!File.Exists(configPath))
             {
-                Log.Warn($"RouteSuggest: Config file not found at {configPath}, using default path configs");
+                LogWithTimestamp($"Config file not found at {configPath}, using default path configs");
                 return;
             }
 
@@ -559,13 +569,13 @@ public static class RouteSuggest
 
             if (configData?.SchemaVersion != 1)
             {
-                Log.Warn($"RouteSuggest: Unsupported schema version {configData?.SchemaVersion}, using defaults");
+                LogWithTimestamp($"Unsupported schema version {configData?.SchemaVersion}, using defaults");
                 return;
             }
 
             if (configData.PathConfigs == null)
             {
-                Log.Warn("RouteSuggest: No path configs found in config file, using defaults");
+                LogWithTimestamp("No path configs found in config file, using defaults");
                 return;
             }
 
@@ -581,14 +591,14 @@ public static class RouteSuggest
                     ScoringWeights = ParseScoringWeights(configEntry.ScoringWeights)
                 };
                 PathConfigs.Add(config);
-                Log.Warn($"RouteSuggest: Loaded path config '{config.Name}' from file");
+                LogWithTimestamp($"Loaded path config '{config.Name}' from file");
             }
 
-            Log.Warn($"RouteSuggest: Successfully loaded {PathConfigs.Count} path configs from {configPath}");
+            LogWithTimestamp($"Successfully loaded {PathConfigs.Count} path configs from {configPath}");
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Failed to load config file: {ex.Message}, using defaults");
+            LogWithTimestamp($"Failed to load config file: {ex.Message}, using defaults");
         }
     }
 
@@ -597,26 +607,26 @@ public static class RouteSuggest
     /// </summary>
     static void PrintPathConfigs()
     {
-        Log.Warn("RouteSuggest: Current Path Configurations:");
-        Log.Warn("==========================================");
+        LogWithTimestamp("Current Path Configurations:");
+        LogWithTimestamp("==========================================");
 
         foreach (var config in PathConfigs)
         {
-            Log.Warn($"  Path: {config.Name}");
-            Log.Warn($"    Priority: {config.Priority}");
-            Log.Warn($"    Color: R={config.Color.R:F2}, G={config.Color.G:F2}, B={config.Color.B:F2}, A={config.Color.A:F2}");
-            Log.Warn($"    Scoring Weights:");
+            LogWithTimestamp($"  Path: {config.Name}");
+            LogWithTimestamp($"    Priority: {config.Priority}");
+            LogWithTimestamp($"    Color: R={config.Color.R:F2}, G={config.Color.G:F2}, B={config.Color.B:F2}, A={config.Color.A:F2}");
+            LogWithTimestamp($"    Scoring Weights:");
 
             foreach (var weight in config.ScoringWeights.OrderBy(w => w.Key.ToString()))
             {
-                Log.Warn($"      {weight.Key}: {weight.Value:+0;-0;0}");
+                LogWithTimestamp($"      {weight.Key}: {weight.Value:+0;-0;0}");
             }
 
-            Log.Warn("");
+            LogWithTimestamp("");
         }
 
-        Log.Warn($"Total path types configured: {PathConfigs.Count}");
-        Log.Warn("==========================================");
+        LogWithTimestamp($"Total path types configured: {PathConfigs.Count}");
+        LogWithTimestamp("==========================================");
     }
 
     /// <summary>
@@ -674,7 +684,7 @@ public static class RouteSuggest
             }
             else
             {
-                Log.Warn($"RouteSuggest: Unknown MapPointType '{kvp.Key}' in config");
+                LogWithTimestamp($"Unknown MapPointType '{kvp.Key}' in config");
             }
         }
         return result;
@@ -741,16 +751,16 @@ public static class RouteSuggest
             _reflectionInitialized = _pathsField != null;
             if (_reflectionInitialized)
             {
-                Log.Warn("RouteSuggest: Reflection initialized successfully");
+                LogWithTimestamp("Reflection initialized successfully");
             }
             else
             {
-                Log.Warn("RouteSuggest: Failed to initialize reflection - _paths field not found");
+                LogWithTimestamp("Failed to initialize reflection - _paths field not found");
             }
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Error initializing reflection: {ex.Message}");
+            LogWithTimestamp($"Error initializing reflection: {ex.Message}");
             _reflectionInitialized = false;
         }
     }
@@ -760,7 +770,7 @@ public static class RouteSuggest
     /// </summary>
     static void OnRunStarted(RunState runState)
     {
-        Log.Warn("RouteSuggest: Run started");
+        LogWithTimestamp("Run started");
         RouteSuggest.RunState = runState;
         UpdateBestPath();
     }
@@ -770,7 +780,7 @@ public static class RouteSuggest
     /// </summary>
     static void OnActEntered()
     {
-        Log.Warn("RouteSuggest: Act entered");
+        LogWithTimestamp("Act entered");
         UpdateBestPath();
         RequestHighlightOnMapOpen();
     }
@@ -780,7 +790,7 @@ public static class RouteSuggest
     /// </summary>
     static void OnRoomEntered()
     {
-        Log.Warn("RouteSuggest: Room entered");
+        LogWithTimestamp("Room entered");
         UpdateBestPath();
         RequestHighlightOnMapOpen();
     }
@@ -791,13 +801,13 @@ public static class RouteSuggest
     /// </summary>
     static void RequestHighlightOnMapOpen()
     {
-        Log.Warn("RouteSuggest: Requesting highlight when map opens");
+        LogWithTimestamp("Requesting highlight when map opens");
 
         // Check if map screen is already open
         var mapScreen = NMapScreen.Instance;
         if (mapScreen != null && mapScreen.IsOpen)
         {
-            Log.Warn("RouteSuggest: Map screen is already open, highlighting immediately");
+            LogWithTimestamp("Map screen is already open, highlighting immediately");
             HighlightBestPath();
             return;
         }
@@ -808,11 +818,11 @@ public static class RouteSuggest
         if (mapScreen != null)
         {
             mapScreen.Opened += OnMapScreenOpened;
-            Log.Warn("RouteSuggest: Subscribed to map screen Opened event");
+            LogWithTimestamp("Subscribed to map screen Opened event");
         }
         else
         {
-            Log.Warn("RouteSuggest: NMapScreen.Instance is null, will retry on next act/room");
+            LogWithTimestamp("NMapScreen.Instance is null, will retry on next act/room");
         }
     }
 
@@ -832,11 +842,11 @@ public static class RouteSuggest
     /// </summary>
     static void OnMapScreenOpened()
     {
-        Log.Warn("RouteSuggest: Map screen opened event triggered");
+        LogWithTimestamp("Map screen opened event triggered");
 
         if (!_pendingHighlight)
         {
-            Log.Warn("RouteSuggest: No pending highlight, ignoring");
+            LogWithTimestamp("No pending highlight, ignoring");
             return;
         }
 
@@ -847,7 +857,7 @@ public static class RouteSuggest
         if (mapScreen != null)
         {
             mapScreen.Opened -= OnMapScreenOpened;
-            Log.Warn("RouteSuggest: Unsubscribed from map screen Opened event");
+            LogWithTimestamp("Unsubscribed from map screen Opened event");
         }
 
         // Apply the highlight
@@ -859,7 +869,7 @@ public static class RouteSuggest
     /// </summary>
     static void OnRoomExited()
     {
-        Log.Warn("RouteSuggest: Room exited");
+        LogWithTimestamp("Room exited");
         UpdateBestPath();
     }
 
@@ -870,15 +880,19 @@ public static class RouteSuggest
     static void UpdateBestPath()
     {
         var runState = RouteSuggest.RunState;
-        Log.Warn($"RouteSuggest: Current act index {runState.CurrentActIndex}");
-        Log.Warn($"RouteSuggest: Floor {runState.ActFloor}/{runState.TotalFloor}");
+        if (runState == null) {
+            return;
+        }
+
+        LogWithTimestamp($"Current act index {runState.CurrentActIndex}");
+        LogWithTimestamp($"Floor {runState.ActFloor}/{runState.TotalFloor}");
 
         // Get current position, fallback to starting point if not set
         var startPoint = runState.CurrentMapPoint ?? runState.Map?.StartingMapPoint;
 
         if (startPoint != null)
         {
-            Log.Warn($"RouteSuggest: At map point {startPoint.coord}");
+            LogWithTimestamp($"At map point {startPoint.coord}");
 
             // Calculate paths for all configured path types
             CalculatedPaths.Clear();
@@ -888,10 +902,10 @@ public static class RouteSuggest
                 if (path != null)
                 {
                     int score = config.CalculateScore(path);
-                    Log.Warn($"RouteSuggest: {config.Name} path found with score {score}:");
+                    LogWithTimestamp($"{config.Name} path found with score {score}:");
                     foreach (var point in path)
                     {
-                        Log.Warn($"RouteSuggest:   coord={point.coord}, type={point.PointType}");
+                        LogWithTimestamp($"  coord={point.coord}, type={point.PointType}");
                     }
                     CalculatedPaths[config.Name] = path;
                 }
@@ -927,15 +941,7 @@ public static class RouteSuggest
             return a.Count.CompareTo(b.Count);
         });
 
-        Log.Warn($"RouteSuggest: Found {allPaths.Count} path(s) to Boss");
-        for (int i = 0; i < allPaths.Count; i++)
-        {
-            Log.Warn($"RouteSuggest: Path {i + 1}:");
-            foreach (var point in allPaths[i])
-            {
-                Log.Warn($"RouteSuggest:   coord={point.coord}, type={point.PointType}");
-            }
-        }
+        LogWithTimestamp($"Found {allPaths.Count} path(s) to Boss");
 
         // Calculate scores for each path and find the best
         if (allPaths.Count == 0)
@@ -949,7 +955,7 @@ public static class RouteSuggest
         for (int i = 0; i < allPaths.Count; i++)
         {
             int score = config.CalculateScore(allPaths[i]);
-            Log.Warn($"RouteSuggest: Path {i + 1} score: {score}");
+            LogWithTimestamp($"Path {i + 1} score: {score}");
 
             if (score > bestScore)
             {
@@ -1001,12 +1007,12 @@ public static class RouteSuggest
     {
         if (!_reflectionInitialized)
         {
-            Log.Warn("RouteSuggest: Highlighting skipped - reflection not initialized");
+            LogWithTimestamp("Highlighting skipped - reflection not initialized");
             return;
         }
         if (CalculatedPaths.Count == 0)
         {
-            Log.Warn("RouteSuggest: Highlighting skipped - no paths calculated");
+            LogWithTimestamp("Highlighting skipped - no paths calculated");
             return;
         }
 
@@ -1019,12 +1025,12 @@ public static class RouteSuggest
             var mapScreen = NMapScreen.Instance;
             if (mapScreen == null)
             {
-                Log.Warn("RouteSuggest: Highlighting skipped - NMapScreen.Instance is null");
+                LogWithTimestamp("Highlighting skipped - NMapScreen.Instance is null");
                 return;
             }
             if (!mapScreen.IsOpen)
             {
-                Log.Warn("RouteSuggest: Highlighting skipped - Map screen is not open");
+                LogWithTimestamp("Highlighting skipped - Map screen is not open");
                 return;
             }
 
@@ -1032,7 +1038,7 @@ public static class RouteSuggest
             var paths = _pathsField.GetValue(mapScreen) as System.Collections.IDictionary;
             if (paths == null)
             {
-                Log.Warn("RouteSuggest: Failed to get paths dictionary");
+                LogWithTimestamp("Failed to get paths dictionary");
                 return;
             }
 
@@ -1118,11 +1124,11 @@ public static class RouteSuggest
                 }
             }
 
-            Log.Warn($"RouteSuggest: Highlighted {segmentColors.Count} unique path segments");
+            LogWithTimestamp($"Highlighted {segmentColors.Count} unique path segments");
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Error highlighting path: {ex.Message}");
+            LogWithTimestamp($"Error highlighting path: {ex.Message}");
         }
     }
 
@@ -1161,7 +1167,7 @@ public static class RouteSuggest
         }
         catch (Exception ex)
         {
-            Log.Warn($"RouteSuggest: Error clearing path highlighting: {ex.Message}");
+            LogWithTimestamp($"Error clearing path highlighting: {ex.Message}");
         }
     }
 }
