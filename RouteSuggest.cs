@@ -82,7 +82,12 @@ public static class RouteSuggest
     /// List of configured path types. Can be modified at runtime or loaded from config file.
     /// Defaults contain Safe (gold) and Aggressive (red) path types.
     /// </summary>
-    public static List<PathConfig> PathConfigs { get; private set; } = new List<PathConfig>
+    public static List<PathConfig> PathConfigs { get; private set; }
+
+    /// <summary>
+    /// Default path configurations used as fallback and for reset functionality.
+    /// </summary>
+    private static readonly List<PathConfig> DefaultPathConfigs = new List<PathConfig>
     {
         new PathConfig
         {
@@ -144,6 +149,10 @@ public static class RouteSuggest
     {
         Log.Warn("RouteSuggest: Mod loaded");
 
+        // Initialize PathConfigs from defaults
+        PathConfigs = new List<PathConfig>();
+        ResetToDefaultPathConfigs();
+
         // Load configuration from file if available
         LoadConfig();
 
@@ -159,6 +168,272 @@ public static class RouteSuggest
 
         // Initialize reflection for path highlighting
         InitializeReflection();
+
+        // Register with ModConfig for GUI settings (via reflection)
+        DeferredRegisterModConfig();
+    }
+
+    /// <summary>
+    /// Deferred registration with ModConfig to ensure all mods are loaded first.
+    /// Uses reflection for zero-dependency integration.
+    /// </summary>
+    static void DeferredRegisterModConfig()
+    {
+        // Wait one frame for all mods to load
+        var tree = (SceneTree)Engine.GetMainLoop();
+        Action callback = null;
+        callback = () =>
+        {
+            tree.ProcessFrame -= callback;
+            RegisterModConfigViaReflection();
+        };
+        tree.ProcessFrame += callback;
+    }
+
+    /// <summary>
+    /// Registers path configurations with ModConfig using reflection.
+    /// This allows ModConfig integration without a hard DLL dependency.
+    /// </summary>
+    static void RegisterModConfigViaReflection()
+    {
+        try
+        {
+            // Check if ModConfig is available
+            var apiType = Type.GetType("ModConfig.ModConfigApi, ModConfig");
+            var entryType = Type.GetType("ModConfig.ConfigEntry, ModConfig");
+            var configType = Type.GetType("ModConfig.ConfigType, ModConfig");
+
+            if (apiType == null || entryType == null || configType == null)
+            {
+                Log.Warn("RouteSuggest: ModConfig not found, skipping GUI registration");
+                return;
+            }
+
+            var entries = new List<object>();
+
+            // Helper to create ConfigEntry via reflection
+            object MakeEntry(string key, string label, object type,
+                object defaultValue = null, float min = 0, float max = 100, float step = 1,
+                string format = "F0", string[] options = null,
+                Action<object> onChanged = null)
+            {
+                var entry = Activator.CreateInstance(entryType);
+                entryType.GetProperty("Key")?.SetValue(entry, key);
+                entryType.GetProperty("Label")?.SetValue(entry, label);
+                entryType.GetProperty("Type")?.SetValue(entry, type);
+                if (defaultValue != null)
+                    entryType.GetProperty("DefaultValue")?.SetValue(entry, defaultValue);
+                entryType.GetProperty("Min")?.SetValue(entry, min);
+                entryType.GetProperty("Max")?.SetValue(entry, max);
+                entryType.GetProperty("Step")?.SetValue(entry, step);
+                entryType.GetProperty("Format")?.SetValue(entry, format);
+                if (options != null)
+                    entryType.GetProperty("Options")?.SetValue(entry, options);
+                if (onChanged != null)
+                    entryType.GetProperty("OnChanged")?.SetValue(entry, onChanged);
+                return entry;
+            }
+
+            // Helper to get ConfigType enum value
+            object GetConfigType(string name) => Enum.Parse(configType, name);
+
+            // Path Management section at the top
+            entries.Add(MakeEntry("", "Path Management", GetConfigType("Header")));
+
+            // Slider to add new path (0->1 triggers add)
+            entries.Add(MakeEntry("__add_path", "Add New Path (slide to 1)",
+                GetConfigType("Slider"),
+                defaultValue: 0f,
+                min: 0, max: 1, step: 1, format: "F0",
+                onChanged: (value) =>
+                {
+                    if ((int)(float)value == 1)
+                    {
+                        var newConfig = new PathConfig
+                        {
+                            Name = $"Path{PathConfigs.Count + 1}",
+                            Color = new Color(1f, 1f, 1f, 1f),
+                            Priority = 50,
+                            ScoringWeights = new Dictionary<MapPointType, int>()
+                        };
+                        PathConfigs.Add(newConfig);
+                        SaveConfiguration();
+
+                        // Re-register to refresh UI
+                        RegisterModConfigViaReflection();
+                    }
+                }));
+
+            entries.Add(MakeEntry("", "", GetConfigType("Separator")));
+
+            // Add configuration for each path
+            for (int i = 0; i < PathConfigs.Count; i++)
+            {
+                var config = PathConfigs[i];
+                var pathIndex = i;
+
+                // Path header with remove slider
+                entries.Add(MakeEntry("", $"Path {i + 1}: {config.Name}", GetConfigType("Header")));
+
+                // Remove this path slider (0 = keep, 1 = remove)
+                entries.Add(MakeEntry($"path_{i}_remove", "Remove Path (0=keep, 1=remove)",
+                    GetConfigType("Slider"),
+                    defaultValue: 0f,
+                    min: 0, max: 1, step: 1, format: "F0",
+                    onChanged: (value) =>
+                    {
+                        if ((int)(float)value == 1)
+                        {
+                            PathConfigs.RemoveAt(pathIndex);
+                            SaveConfiguration();
+
+                            // Re-register to refresh UI
+                            RegisterModConfigViaReflection();
+                        }
+                    }));
+
+                // Name
+                entries.Add(MakeEntry($"path_{i}_name", "Name", GetConfigType("TextInput"),
+                    defaultValue: config.Name,
+                    onChanged: (value) =>
+                    {
+                        config.Name = (string)value;
+                        SaveConfiguration();
+                    }));
+
+                // Color (hex input)
+                entries.Add(MakeEntry($"path_{i}_color", "Color (hex, e.g., #FFD700)",
+                    GetConfigType("TextInput"),
+                    defaultValue: $"#{config.Color.ToHtml(false)}",
+                    onChanged: (value) =>
+                    {
+                        config.Color = ParseColor((string)value);
+                        SaveConfiguration();
+                    }));
+
+                // Priority
+                entries.Add(MakeEntry($"path_{i}_priority", "Priority (higher = on top)",
+                    GetConfigType("Slider"),
+                    defaultValue: (float)config.Priority,
+                    min: 0, max: 200, step: 10, format: "F0",
+                    onChanged: (value) =>
+                    {
+                        config.Priority = (int)(float)value;
+                        SaveConfiguration();
+                    }));
+
+                // Scoring weights section header
+                entries.Add(MakeEntry("", "Scoring Weights", GetConfigType("Header")));
+
+                // Add weights for each room type
+                var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
+                    MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
+                foreach (var roomType in roomTypes)
+                {
+                    if (!config.ScoringWeights.TryGetValue(roomType, out int weight))
+                        weight = 0;
+
+                    var capturedRoomType = roomType;
+                    entries.Add(MakeEntry($"path_{i}_weight_{roomType}", roomType.ToString(),
+                        GetConfigType("Slider"),
+                        defaultValue: (float)weight,
+                        min: -100, max: 100, step: 1, format: "F0",
+                        onChanged: (value) =>
+                        {
+                            config.ScoringWeights[capturedRoomType] = (int)(float)value;
+                            SaveConfiguration();
+                        }));
+                }
+
+                entries.Add(MakeEntry("", "", GetConfigType("Separator")));
+            }
+
+            // Register with ModConfig via reflection
+            var registerMethod = apiType.GetMethod("Register",
+                new[] { typeof(string), typeof(string), entries.ToArray().GetType() });
+            registerMethod?.Invoke(null, new object[] { "RouteSuggest", "RouteSuggest", entries.ToArray() });
+
+            Log.Warn($"RouteSuggest: Registered {entries.Count()} entries with ModConfig (via reflection)");
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"RouteSuggest: Failed to register with ModConfig: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Saves the current PathConfigs to RouteSuggestConfig.json.
+    /// Called automatically when settings are changed via ModConfig.
+    /// </summary>
+    static void SaveConfiguration()
+    {
+        try
+        {
+            string executablePath = OS.GetExecutablePath();
+            string directoryName = Path.GetDirectoryName(executablePath);
+            string modsPath = Path.Combine(directoryName, "mods");
+            string configPath = Path.Combine(modsPath, "RouteSuggestConfig.json");
+
+            var configData = new ConfigFile
+            {
+                SchemaVersion = 1,
+                PathConfigs = new List<PathConfigEntry>()
+            };
+
+            foreach (var config in PathConfigs)
+            {
+                var entry = new PathConfigEntry
+                {
+                    Name = config.Name,
+                    Color = $"#{config.Color.ToHtml(false)}",
+                    Priority = config.Priority,
+                    ScoringWeights = new Dictionary<string, int>()
+                };
+
+                foreach (var weight in config.ScoringWeights)
+                {
+                    entry.ScoringWeights[weight.Key.ToString()] = weight.Value;
+                }
+
+                configData.PathConfigs.Add(entry);
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            };
+
+            string json = JsonSerializer.Serialize(configData, options);
+            File.WriteAllText(configPath, json);
+
+            Log.Warn($"RouteSuggest: Configuration saved to {configPath}");
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"RouteSuggest: Failed to save configuration: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Resets PathConfigs to the default configuration.
+    /// Creates deep copies of default configs to avoid modifying the originals.
+    /// </summary>
+    public static void ResetToDefaultPathConfigs()
+    {
+        PathConfigs.Clear();
+        foreach (var defaultConfig in DefaultPathConfigs)
+        {
+            var config = new PathConfig
+            {
+                Name = defaultConfig.Name,
+                Color = defaultConfig.Color,
+                Priority = defaultConfig.Priority,
+                ScoringWeights = new Dictionary<MapPointType, int>(defaultConfig.ScoringWeights)
+            };
+            PathConfigs.Add(config);
+        }
+        Log.Warn("RouteSuggest: Reset to default path configurations");
     }
 
     /// <summary>

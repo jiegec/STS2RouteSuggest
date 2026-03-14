@@ -79,7 +79,27 @@ When both paths share an edge, it appears in gold.
 
 ## Configuration
 
-You can customize the path types by creating a `RouteSuggestConfig.json` file in the mods folder (i.e. `mods/RouteSuggestConfig.json`):
+### GUI Settings (Recommended)
+
+RouteSuggest optionally integrates with [**ModConfig**](https://github.com/xhyrzldf/ModConfig-STS2). When ModConfig is installed, RouteSuggest appears in the game's **Settings > Mods** menu. If ModConfig is not installed, the mod still works normally, but you'll need to edit the JSON configuration file manually (see below).
+
+With ModConfig GUI, you can:
+
+- **Configure each path**:
+  - **Name**: Identifier for the path
+  - **Color**: Enter hex color code (e.g., `#FFD700` for gold, `#FF0000` for red)
+  - **Priority**: Slider to set rendering priority (higher = renders on top when paths overlap)
+  - **Scoring Weights**: Sliders for each room type
+    - Positive = prefer this room type
+    - Negative = avoid this room type
+    - Zero = neutral
+- **Add New Path**: Slider to add a new path (slide to 1)
+- **Remove Path**: Each path has a slider to remove it (0=keep, 1=remove)
+- **Changes are saved automatically** to `mods/RouteSuggestConfig.json`
+
+### Manual JSON Configuration
+
+Alternatively, you can customize the path types by manually editing `RouteSuggestConfig.json` in the mods folder:
 
 ```json
 {
@@ -123,6 +143,13 @@ Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unkno
 If the config file is missing or invalid, default path configs are used.
 
 ## Changelog
+
+### Unreleased
+
+- Added GUI Settings integration with ModConfig for in-game path configuration
+  - Configure name, color (hex input), priority, and scoring weights via GUI
+  - Add/remove custom path types
+  - Changes saved to JSON automatically
 
 ### v1.3.0
 
