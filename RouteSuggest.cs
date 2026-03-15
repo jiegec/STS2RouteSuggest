@@ -158,6 +158,12 @@ public static class RouteSuggest
     private static bool _pendingHighlight = false;
 
     /// <summary>
+    /// Stores the path to the config file that was used for loading.
+    /// Used for saving configuration back to the same location.
+    /// </summary>
+    private static string _configFilePath = null;
+
+    /// <summary>
     /// Logs a message with a timestamp prefix.
     /// </summary>
     /// <param name="message">The message to log.</param>
@@ -504,17 +510,79 @@ public static class RouteSuggest
     }
 
     /// <summary>
+    /// Determines the config file path to use.
+    /// Priority: 1) mods/RouteSuggestConfig.json if exists, 2) same directory as RouteSuggest.dll (recursive search), 3) mods/RouteSuggestConfig.json as fallback
+    /// </summary>
+    /// <returns>The determined config file path.</returns>
+    static string GetConfigFilePath()
+    {
+        string executablePath = OS.GetExecutablePath();
+        string directoryName = Path.GetDirectoryName(executablePath);
+        string modsPath = Path.Combine(directoryName, "mods");
+        string modsConfigPath = Path.Combine(modsPath, "RouteSuggestConfig.json");
+
+        LogWithTimestamp($"Determining config file path. Mods directory: {modsPath}");
+
+        // Priority 1: Check if mods/RouteSuggestConfig.json exists
+        LogWithTimestamp($"Priority 1: Checking for config at {modsConfigPath}");
+        if (File.Exists(modsConfigPath))
+        {
+            LogWithTimestamp($"Found config at {modsConfigPath} (Priority 1)");
+            return modsConfigPath;
+        }
+        LogWithTimestamp($"Config not found at {modsConfigPath}");
+
+        // Priority 2: Find RouteSuggest.dll recursively and use its directory
+        if (Directory.Exists(modsPath))
+        {
+            LogWithTimestamp("Priority 2: Searching for RouteSuggest.dll recursively in mods folder");
+            try
+            {
+                string[] dllFiles = Directory.GetFiles(modsPath, "RouteSuggest.dll", SearchOption.AllDirectories);
+                if (dllFiles.Length > 0)
+                {
+                    string dllPath = dllFiles[0];
+                    string dllDirectory = Path.GetDirectoryName(dllPath);
+                    string dllConfigPath = Path.Combine(dllDirectory, "RouteSuggestConfig.json");
+                    LogWithTimestamp($"Found RouteSuggest.dll at {dllPath}");
+                    LogWithTimestamp($"Using config path: {dllConfigPath} (Priority 2)");
+                    return dllConfigPath;
+                }
+                else
+                {
+                    LogWithTimestamp("RouteSuggest.dll not found in mods folder or subdirectories");
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogWithTimestamp($"Permission denied while searching for RouteSuggest.dll: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                LogWithTimestamp($"Error searching for RouteSuggest.dll: {ex.Message}");
+            }
+        }
+        else
+        {
+            LogWithTimestamp($"Mods directory does not exist: {modsPath}");
+        }
+
+        // Priority 3: Fall back to mods/RouteSuggestConfig.json
+        LogWithTimestamp($"Priority 3: Falling back to default path {modsConfigPath}");
+        return modsConfigPath;
+    }
+
+    /// <summary>
     /// Saves the current PathConfigs to RouteSuggestConfig.json.
     /// Called automatically when settings are changed via ModConfig.
+    /// Uses the path determined during LoadConfig.
     /// </summary>
     static void SaveConfiguration()
     {
         try
         {
-            string executablePath = OS.GetExecutablePath();
-            string directoryName = Path.GetDirectoryName(executablePath);
-            string modsPath = Path.Combine(directoryName, "mods");
-            string configPath = Path.Combine(modsPath, "RouteSuggestConfig.json");
+            // Use remembered path
+            string configPath = _configFilePath;
 
             var configData = new ConfigFile
             {
@@ -584,15 +652,16 @@ public static class RouteSuggest
     /// <summary>
     /// Loads path configurations from RouteSuggestConfig.json if it exists.
     /// Falls back to default PathConfigs if file is missing or invalid.
+    /// Remembers the config path for subsequent saves.
     /// </summary>
     static void LoadConfig()
     {
         try
         {
-            string executablePath = OS.GetExecutablePath();
-            string directoryName = Path.GetDirectoryName(executablePath);
-            string modsPath = Path.Combine(directoryName, "mods");
-            string configPath = Path.Combine(modsPath, "RouteSuggestConfig.json");
+            string configPath = GetConfigFilePath();
+
+            // Remember this path for saving
+            _configFilePath = configPath;
 
             if (!File.Exists(configPath))
             {
@@ -938,7 +1007,8 @@ public static class RouteSuggest
     static void UpdateBestPath()
     {
         var runState = RouteSuggest.RunState;
-        if (runState == null) {
+        if (runState == null)
+        {
             return;
         }
 

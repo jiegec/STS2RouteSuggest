@@ -102,11 +102,15 @@ With ModConfig GUI, you can:
 - **Add New Path**: Slider to add a new path (slide to 1)
 - **Remove Path**: Each path has a slider to remove it (0=keep, 1=remove)
 - **Reset to Defaults**: Slider to reset all paths to default configuration
-- **Changes are saved automatically** to `mods/RouteSuggestConfig.json`
+- **Changes are saved automatically** to the config file location (see below for details)
 
 ### Manual JSON Configuration
 
-Alternatively, you can customize the path types by manually editing `RouteSuggestConfig.json` in the mods folder:
+Alternatively, you can customize the path types by manually editing `RouteSuggestConfig.json`:
+
+- **Existing users**: If you already have a config file at `mods/RouteSuggestConfig.json`, it will continue to be used (no migration needed)
+- **New users**: The config will be saved alongside `RouteSuggest.dll` (found recursively in the mods folder). If the DLL cannot be found, it falls back to `mods/RouteSuggestConfig.json`
+- **Note**: Config is saved to the same location where it was read from. The mod will not automatically migrate the config file to a different location.
 
 ```json
 {
@@ -152,6 +156,15 @@ Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unkno
 If the config file is missing or invalid, default path configs are used.
 
 ## Changelog
+
+### v1.6.0
+
+- Improved config file path resolution
+  - Based on user feedback: when there are many mods in the folder, having the config file at the root level becomes messy
+  - If `mods/RouteSuggestConfig.json` exists, continue using it (no migration needed)
+  - Otherwise, find `RouteSuggest.dll` recursively and save config alongside it
+  - Fallback to `mods/RouteSuggestConfig.json` if DLL not found
+  - Config is saved to the same location where it was read from (no automatic migration)
 
 ### v1.5.0
 
