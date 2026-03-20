@@ -239,8 +239,9 @@ public static class RouteSuggest
             var apiType = Type.GetType("ModConfig.ModConfigApi, ModConfig");
             var entryType = Type.GetType("ModConfig.ConfigEntry, ModConfig");
             var configType = Type.GetType("ModConfig.ConfigType, ModConfig");
+            var managerType = Type.GetType("ModConfig.ModConfigManager, ModConfig");
 
-            if (apiType == null || entryType == null || configType == null)
+            if (apiType == null || entryType == null || configType == null || managerType == null)
             {
                 LogWithTimestamp("ModConfig not found, skipping GUI registration");
                 return;
@@ -269,6 +270,10 @@ public static class RouteSuggest
                     method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_weight_{roomType}", (float)weight });
                 }
             }
+
+            // Ensure our configurations are saved immediately
+            var save = managerType.GetMethod("SaveValues", BindingFlags.NonPublic | BindingFlags.Static)!;
+            save.Invoke(null, new object[] { "RouteSuggest" });
 
             var entries = new List<object>();
 
