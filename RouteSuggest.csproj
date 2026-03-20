@@ -7,5 +7,8 @@
     <Reference Include="sts2">
         <HintPath>sts2.dll</HintPath>
     </Reference>
+    <Reference Include="MegaCrit.Sts2.Core">
+        <HintPath>sts2.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

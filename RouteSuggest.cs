@@ -121,7 +121,7 @@ public static class RouteSuggest
                 { MapPointType.Treasure, 1 },
                 { MapPointType.Shop, 1 },
                 { MapPointType.Monster, -1 },
-                { MapPointType.Elite, -3 },
+                { MapPointType.Elite, -99 },
                 { MapPointType.Unknown, 0 }
             }
         },
