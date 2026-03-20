@@ -246,6 +246,30 @@ public static class RouteSuggest
                 return;
             }
 
+            // Synchronize current config to ModConfig
+            var method = apiType.GetMethod("SetValue")!;
+            method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", false });
+            method.Invoke(null, new object[] { "RouteSuggest", "highlight_type", CurrentHighlightType.ToString() });
+            method.Invoke(null, new object[] { "RouteSuggest", "__add_path", false });
+            for (int i = 0; i < PathConfigs.Count; i++)
+            {
+                var config = PathConfigs[i];
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_remove", false });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_enabled", config.Enabled });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_name", config.Name });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_color", $"#{config.Color.ToHtml(false)}" });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_priority", (float)config.Priority });
+
+                var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
+                    MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
+                foreach (var roomType in roomTypes)
+                {
+                    var weight = 0;
+                    PathConfigs[i].ScoringWeights.TryGetValue(roomType, out weight);
+                    method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_weight_{roomType}", (float)weight });
+                }
+            }
+
             var entries = new List<object>();
 
             // Helper to create ConfigEntry via reflection
@@ -285,27 +309,26 @@ public static class RouteSuggest
 
             // Reset to defaults logic
             entries.Add(MakeEntry("__reset_default", "Reset to defaults",
-                GetConfigType("Slider"),
-                defaultValue: 1f,
-                min: 0, max: 1, step: 1, format: "F0",
+                GetConfigType("Toggle"),
+                defaultValue: true,
                 labels: new() { { "zhs", "重置为默认值" } },
-                descriptions: new() { { "en", "Slide to 1 to reset all configurations to default" }, { "zhs", "滑到 1 以重置所有配置为默认值" } },
+                descriptions: new() { { "en", "Toggle to reset all configurations to default" }, { "zhs", "点击以重置所有配置为默认值" } },
                 onChanged: (value) =>
                 {
-                    if ((int)(float)value == 1)
+                    if ((bool)value)
                     {
                         ResetToDefault();
                         SaveAndUpdatePath();
 
                         // Re-register to refresh UI
-                        RegisterModConfigViaReflection();
+                        DeferredRegisterModConfig();
                     }
                 }));
 
             // Highlight type selector
             entries.Add(MakeEntry("highlight_type", "Highlight Type",
                 GetConfigType("Dropdown"),
-                defaultValue: CurrentHighlightType.ToString(),
+                defaultValue: HighlightType.One.ToString(),
                 options: new[] { "One", "All" },
                 labels: new() { { "zhs", "高亮类型" } },
                 descriptions: new() { { "en", "Pick one path from optimal paths (One) or highlight all optimal paths (All)" }, { "zhs", "从最优路径中选择一条 (One) 或高亮所有最优路径 (All)" } },
@@ -325,16 +348,15 @@ public static class RouteSuggest
             entries.Add(MakeEntry("", "Path Management", GetConfigType("Header"),
                 labels: new() { { "zhs", "路径管理" } }));
 
-            // Slider to add new path (0->1 triggers add)
-            entries.Add(MakeEntry("__add_path", "Add New Path (slide to 1)",
-                GetConfigType("Slider"),
-                defaultValue: 0f,
-                min: 0, max: 1, step: 1, format: "F0",
-                labels: new() { { "zhs", "添加新路径 (滑到 1)" } },
-                descriptions: new() { { "en", "Slide to 1 to add a new path configuration" }, { "zhs", "滑到 1 以添加新的路径配置" } },
+            // Toggle to add new path
+            entries.Add(MakeEntry("__add_path", "Add New Path",
+                GetConfigType("Toggle"),
+                defaultValue: false,
+                labels: new() { { "zhs", "添加新路径" } },
+                descriptions: new() { { "en", "Toggle to add a new path configuration" }, { "zhs", "点击以添加新的路径配置" } },
                 onChanged: (value) =>
                 {
-                    if ((int)(float)value == 1)
+                    if ((bool)value)
                     {
                         var newConfig = new PathConfig
                         {
@@ -347,7 +369,7 @@ public static class RouteSuggest
                         SaveAndUpdatePath();
 
                         // Re-register to refresh UI
-                        RegisterModConfigViaReflection();
+                        DeferredRegisterModConfig();
                     }
                 }));
 
@@ -359,48 +381,51 @@ public static class RouteSuggest
                 var config = PathConfigs[i];
                 var pathIndex = i;
 
-                // Path header with remove slider
+                // Path header with remove toggle
                 entries.Add(MakeEntry("", $"Path {i + 1}",
                     GetConfigType("Header"),
                     labels: new() { { "zhs", $"路径 {i + 1}" } }
                 ));
 
-                // Remove this path slider (0 = keep, 1 = remove)
-                entries.Add(MakeEntry($"path_{i}_remove", "Remove Path (0=keep, 1=remove)",
-                    GetConfigType("Slider"),
-                    defaultValue: 0f,
-                    min: 0, max: 1, step: 1, format: "F0",
-                    labels: new() { { "zhs", "删除路径 (0=保留, 1=删除)" } },
-                    descriptions: new() { { "en", "Slide to 1 to remove this path configuration" }, { "zhs", "滑到 1 以删除此路径配置" } },
+                // Remove this path toggle
+                entries.Add(MakeEntry($"path_{i}_remove", "Remove Path",
+                    GetConfigType("Toggle"),
+                    defaultValue: false,
+                    labels: new() { { "zhs", "删除路径" } },
+                    descriptions: new() { { "en", "Toggle to remove this path configuration" }, { "zhs", "点击以删除此路径配置" } },
                     onChanged: (value) =>
                     {
-                        if ((int)(float)value == 1)
+                        if ((bool)value)
                         {
                             PathConfigs.RemoveAt(pathIndex);
                             SaveAndUpdatePath();
 
                             // Re-register to refresh UI
-                            RegisterModConfigViaReflection();
+                            DeferredRegisterModConfig();
                         }
                     }));
 
-                // Enable/disable this path (0 = disabled, 1 = enabled)
-                entries.Add(MakeEntry($"path_{i}_enabled", "Enabled (0=disabled, 1=enabled)",
-                    GetConfigType("Slider"),
-                    defaultValue: config.Enabled ? 1f : 0f,
-                    min: 0, max: 1, step: 1, format: "F0",
-                    labels: new() { { "zhs", "是否启用 (0=禁用, 1=启用)" } },
+                // Enable/disable this path
+                entries.Add(MakeEntry($"path_{i}_enabled", "Enabled",
+                    GetConfigType("Toggle"),
+                    defaultValue: true,
+                    labels: new() { { "zhs", "是否启用" } },
                     descriptions: new() { { "en", "Enable or disable this path" }, { "zhs", "启用或禁用此路径" } },
                     onChanged: (value) =>
                     {
-                        config.Enabled = (int)(float)value == 1;
+                        config.Enabled = (bool)value;
                         SaveAndUpdatePath();
                     }));
 
 
                 // Name
+                var defaultName = $"Path{i + 1}";
+                if (i < DefaultPathConfigs.Count)
+                {
+                    defaultName = DefaultPathConfigs[i].Name;
+                }
                 entries.Add(MakeEntry($"path_{i}_name", "Name", GetConfigType("TextInput"),
-                    defaultValue: config.Name,
+                    defaultValue: defaultName,
                     labels: new() { { "zhs", "名称" } },
                     descriptions: new() { { "en", "The name of this path" }, { "zhs", "此路径的名称" } },
                     onChanged: (value) =>
@@ -410,9 +435,14 @@ public static class RouteSuggest
                     }));
 
                 // Color (hex input)
+                var defaultColor = new Color(1f, 1f, 1f, 1f);
+                if (i < DefaultPathConfigs.Count)
+                {
+                    defaultColor = DefaultPathConfigs[i].Color;
+                }
                 entries.Add(MakeEntry($"path_{i}_color", "Color (hex, e.g., #FFD700)",
                     GetConfigType("TextInput"),
-                    defaultValue: $"#{config.Color.ToHtml(false)}",
+                    defaultValue: $"#{defaultColor.ToHtml(false)}",
                     labels: new() { { "zhs", "颜色 (十六进制, 如 #FFD700)" } },
                     descriptions: new() { { "en", "Hex color code for path highlighting" }, { "zhs", "用于路径高亮的十六进制颜色代码" } },
                     onChanged: (value) =>
@@ -422,9 +452,14 @@ public static class RouteSuggest
                     }));
 
                 // Priority
+                var defaultPriority = 50;
+                if (i < DefaultPathConfigs.Count)
+                {
+                    defaultPriority = DefaultPathConfigs[i].Priority;
+                }
                 entries.Add(MakeEntry($"path_{i}_priority", "Priority (higher = on top)",
                     GetConfigType("Slider"),
-                    defaultValue: (float)config.Priority,
+                    defaultValue: (float)defaultPriority,
                     min: 0, max: 200, step: 10, format: "F0",
                     labels: new() { { "zhs", "优先级 (越高越靠前)" } },
                     descriptions: new() { { "en", "Higher priority paths are rendered on top of lower priority paths" }, { "zhs", "优先级高的路径会覆盖优先级低的路径" } },
@@ -443,8 +478,11 @@ public static class RouteSuggest
                     MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
                 foreach (var roomType in roomTypes)
                 {
-                    if (!config.ScoringWeights.TryGetValue(roomType, out int weight))
-                        weight = 0;
+                    var weight = 0;
+                    if (i < DefaultPathConfigs.Count)
+                    {
+                        DefaultPathConfigs[i].ScoringWeights.TryGetValue(roomType, out weight);
+                    }
 
                     var capturedRoomType = roomType;
                     var roomLabels = new Dictionary<string, string>
@@ -518,9 +556,6 @@ public static class RouteSuggest
             registerMethod!.Invoke(null, new object[] { "RouteSuggest", "RouteSuggest", entriesArray });
 
             LogWithTimestamp($"Registered {entries.Count()} entries with ModConfig (via reflection)");
-
-            var method = apiType.GetMethod("SetValue")!;
-            method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", 0f });
         }
         catch (Exception ex)
         {

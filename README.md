@@ -166,6 +166,7 @@ If the config file is missing or invalid, default path configs are used.
 
 ### Unreleased
 
+- Improved ModConfig UI: changed sliders to toggles for easier configuration
 - Added enable/disable option for each path configuration
   - Disabled paths are not calculated or shown on the map
   - Available in both ModConfig GUI and JSON config
