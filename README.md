@@ -13,7 +13,7 @@ A mod for Slay the Spire 2 that suggests the optimal path through the map and hi
   - **Gold**: Safe path (minimizes risk)
   - **Red**: Aggressive path (prioritizes combat for rewards)
 - **Smart scoring**: Different weights for safe vs aggressive playstyles
-- **GUI Configuration**: Full in-game configuration via ModConfig (optional)
+- **GUI Configuration**: Full in-game configuration via [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) (optional)
 - **Manual Configuration**: Direct JSON configuration for advanced users
 
 ## Installation
@@ -161,6 +161,10 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unknown`, `Boss`
 
 If the config file is missing or invalid, default path configs are used.
+
+### Community Configurations
+
+Users have shared their custom configurations on the [Nexus Mods posts page](https://www.nexusmods.com/slaythespire2/mods/54?tab=posts). Check them out for inspiration or to find configs that match your playstyle.
 
 ## Changelog
 
