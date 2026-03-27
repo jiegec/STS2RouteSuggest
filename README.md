@@ -4,7 +4,7 @@
 
 A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in gold/red on the map screen.
 
-**Supported game versions:** v0.99.1 and v0.100.0 (public beta)
+**Supported game versions:** v0.99.1 and v0.101.0 (public beta)
 
 ## Features
 
@@ -167,6 +167,10 @@ If the config file is missing or invalid, default path configs are used.
 Users have shared their custom configurations on the [Nexus Mods posts page](https://www.nexusmods.com/slaythespire2/mods/54?tab=posts). Check them out for inspiration or to find configs that match your playstyle.
 
 ## Changelog
+
+### Unreleased
+
+- Tested on game beta v0.101.0
 
 ### v1.8.0
 
