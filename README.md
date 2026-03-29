@@ -171,6 +171,7 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 ### Unreleased
 
 - Tested on game beta v0.101.0
+- Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
 
 ### v1.8.0
 

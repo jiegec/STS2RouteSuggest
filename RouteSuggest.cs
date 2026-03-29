@@ -309,6 +309,34 @@ public static class RouteSuggest
             // Helper to get ConfigType enum value
             object GetConfigType(string name) => Enum.Parse(configType, name);
 
+            // When Button is available, use Button instead of Toggle
+            object? buttonOrToggle = null;
+            try
+            {
+                buttonOrToggle = GetConfigType("Button");
+                LogWithTimestamp("Button is available");
+            }
+            catch (Exception ex)
+            {
+                // Fallback
+                buttonOrToggle = GetConfigType("Toggle");
+                LogWithTimestamp("Button is unavailable, fallback to Toggle");
+            }
+
+            // When ColorPicker is available, use ColorPicker instead of TextInput
+            object? colorPickerOrTextInput = null;
+            try
+            {
+                colorPickerOrTextInput = GetConfigType("ColorPicker");
+                LogWithTimestamp("ColorPicker is available");
+            }
+            catch (Exception ex)
+            {
+                // Fallback
+                colorPickerOrTextInput = GetConfigType("TextInput");
+                LogWithTimestamp("ColorPicker is unavailable, fallback to TextInput");
+            }
+
             entries.Add(MakeEntry("", "General", GetConfigType("Header"),
                 labels: new() { { "zhs", "通用" } }));
 
@@ -355,7 +383,7 @@ public static class RouteSuggest
 
             // Toggle to add new path
             entries.Add(MakeEntry("__add_path", "Add New Path",
-                GetConfigType("Toggle"),
+                buttonOrToggle,
                 defaultValue: false,
                 labels: new() { { "zhs", "添加新路径" } },
                 descriptions: new() { { "en", "Toggle to add a new path configuration" }, { "zhs", "点击以添加新的路径配置" } },
@@ -394,7 +422,7 @@ public static class RouteSuggest
 
                 // Remove this path toggle
                 entries.Add(MakeEntry($"path_{i}_remove", "Remove Path",
-                    GetConfigType("Toggle"),
+                    buttonOrToggle,
                     defaultValue: false,
                     labels: new() { { "zhs", "删除路径" } },
                     descriptions: new() { { "en", "Toggle to remove this path configuration" }, { "zhs", "点击以删除此路径配置" } },
@@ -446,7 +474,7 @@ public static class RouteSuggest
                     defaultColor = DefaultPathConfigs[i].Color;
                 }
                 entries.Add(MakeEntry($"path_{i}_color", "Color (hex, e.g., #FFD700)",
-                    GetConfigType("TextInput"),
+                    colorPickerOrTextInput,
                     defaultValue: $"#{defaultColor.ToHtml(false)}",
                     labels: new() { { "zhs", "颜色 (十六进制, 如 #FFD700)" } },
                     descriptions: new() { { "en", "Hex color code for path highlighting" }, { "zhs", "用于路径高亮的十六进制颜色代码" } },
