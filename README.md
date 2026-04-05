@@ -202,14 +202,16 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ## Changelog
 
-### Unreleased
+### v1.9.0
 
 - Tested on game beta v0.99.1 and v0.102.0
-- Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
 - Added expert scoring mode with adjacency bonuses (schema version 4)
-  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->Any>Elite, Elite->Any->Rest
+  - Global toggle to enable expert scoring (affects all paths)
+  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->Any->Elite, Elite->Any->Rest
+  - Sliders hidden when expert mode is disabled
   - Available in both ModConfig GUI and JSON config
   - All bonuses default to 0, no impact when expert mode is off
+- Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
 
 ### v1.8.0
 
