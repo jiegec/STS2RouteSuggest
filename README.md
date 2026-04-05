@@ -90,8 +90,8 @@ Each path can optionally enable **Expert Mode** to apply positional bonuses on t
 | **Rest -> Elite** | Rest site directly before an elite encounter | 0 |
 | **Elite -> Rest** | Elite encounter directly before a rest site | 0 |
 | **Treasure -> Elite** | Treasure room directly before an elite encounter | 0 |
-| **Rest -> \* -> Elite** | Rest site two steps before an elite (one node in between) | 0 |
-| **Elite -> \* -> Rest** | Elite encounter two steps before a rest site | 0 |
+| **Rest -> Any -> Elite** | Rest site two steps before an elite (one node in between) | 0 |
+| **Elite -> Any -> Rest** | Elite encounter two steps before a rest site | 0 |
 
 All bonuses default to 0 (disabled). When Expert Mode is off, scoring is identical to before. The toggle and bonuses are configurable via ModConfig GUI or JSON.
 
@@ -204,10 +204,10 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ### Unreleased
 
-- Tested on game beta v0.101.0
+- Tested on game beta v0.99.1 and v0.102.0
 - Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
 - Added expert scoring mode with adjacency bonuses (schema version 4)
-  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->\*->Elite, Elite->\*->Rest
+  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->Any>Elite, Elite->Any->Rest
   - Available in both ModConfig GUI and JSON config
   - All bonuses default to 0, no impact when expert mode is off
 

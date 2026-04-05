@@ -996,8 +996,8 @@ public static class RouteSuggest
                 LogWithTimestamp($"      Rest -> Elite:       {config.RestBeforeEliteBonus:+0;-0;0}");
                 LogWithTimestamp($"      Elite -> Rest:       {config.EliteBeforeRestBonus:+0;-0;0}");
                 LogWithTimestamp($"      Treasure -> Elite:   {config.TreasureBeforeEliteBonus:+0;-0;0}");
-                LogWithTimestamp($"      Rest -> * -> Elite:  {config.RestTwoBeforeEliteBonus:+0;-0;0}");
-                LogWithTimestamp($"      Elite -> * -> Rest:  {config.EliteTwoBeforeRestBonus:+0;-0;0}");
+                LogWithTimestamp($"      Rest -> Any -> Elite:  {config.RestTwoBeforeEliteBonus:+0;-0;0}");
+                LogWithTimestamp($"      Elite -> Any -> Rest:  {config.EliteTwoBeforeRestBonus:+0;-0;0}");
             }
 
             LogWithTimestamp("");
