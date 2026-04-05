@@ -46,11 +46,38 @@ public class PathConfig
     public Dictionary<MapPointType, int> ScoringWeights { get; set; } = new Dictionary<MapPointType, int>();
 
     /// <summary>
+    /// Bonus when Rest is directly followed by Elite.
+    /// </summary>
+    public int RestBeforeEliteBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when Elite is directly followed by Rest.
+    /// </summary>
+    public int EliteBeforeRestBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when Treasure is directly followed by Elite.
+    /// </summary>
+    public int TreasureBeforeEliteBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when Rest is followed by Elite with exactly one node in between (Rest -> * -> Elite).
+    /// </summary>
+    public int RestTwoBeforeEliteBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when Elite is followed by Rest with exactly one node in between (Elite -> * -> Rest).
+    /// </summary>
+    public int EliteTwoBeforeRestBonus { get; set; } = 0;
+
+    /// <summary>
     /// Calculates the total score for a given path using this configuration's scoring weights.
+    /// When expertMode is true, also applies adjacency bonuses.
     /// </summary>
     /// <param name="path">List of map points representing the path to score.</param>
+    /// <param name="expertMode">Whether to apply adjacency bonuses.</param>
     /// <returns>The total score, or 0 if path is null or empty.</returns>
-    public int CalculateScore(List<MapPoint> path)
+    public int CalculateScore(List<MapPoint> path, bool expertMode)
     {
         if (path == null) return 0;
 
@@ -62,7 +89,49 @@ public class PathConfig
                 score += weight;
             }
         }
+
+        if (expertMode)
+        {
+            score += CalculateAdjacencyBonuses(path);
+        }
+
         return score;
+    }
+
+    private int CalculateAdjacencyBonuses(List<MapPoint> path)
+    {
+        if (path.Count < 2) return 0;
+
+        int bonus = 0;
+
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            var curr = path[i].PointType;
+            var next = path[i + 1].PointType;
+
+            if (curr == MapPointType.RestSite && next == MapPointType.Elite)
+                bonus += RestBeforeEliteBonus;
+
+            if (curr == MapPointType.Elite && next == MapPointType.RestSite)
+                bonus += EliteBeforeRestBonus;
+
+            if (curr == MapPointType.Treasure && next == MapPointType.Elite)
+                bonus += TreasureBeforeEliteBonus;
+        }
+
+        for (int i = 0; i < path.Count - 2; i++)
+        {
+            var curr = path[i].PointType;
+            var after = path[i + 2].PointType;
+
+            if (curr == MapPointType.RestSite && after == MapPointType.Elite)
+                bonus += RestTwoBeforeEliteBonus;
+
+            if (curr == MapPointType.Elite && after == MapPointType.RestSite)
+                bonus += EliteTwoBeforeRestBonus;
+        }
+
+        return bonus;
     }
 }
 
@@ -104,6 +173,11 @@ public static class RouteSuggest
     /// Controls whether to highlight one optimal path (One) or all optimal paths (All).
     /// </summary>
     public static HighlightType CurrentHighlightType { get; set; } = HighlightType.One;
+
+    /// <summary>
+    /// Controls whether expert scoring (adjacency bonuses) is enabled for all path configs.
+    /// </summary>
+    public static bool CurrentExpertMode { get; set; } = false;
 
     /// <summary>
     /// Default path configurations used as fallback and for reset functionality.
@@ -251,6 +325,7 @@ public static class RouteSuggest
             var method = apiType.GetMethod("SetValue")!;
             method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", false });
             method.Invoke(null, new object[] { "RouteSuggest", "highlight_type", CurrentHighlightType.ToString() });
+            method.Invoke(null, new object[] { "RouteSuggest", "expert_mode", CurrentExpertMode });
             method.Invoke(null, new object[] { "RouteSuggest", "__add_path", false });
             for (int i = 0; i < PathConfigs.Count; i++)
             {
@@ -260,6 +335,11 @@ public static class RouteSuggest
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_name", config.Name });
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_color", $"#{config.Color.ToHtml(false)}" });
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_priority", (float)config.Priority });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_before_elite", (float)config.RestBeforeEliteBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_before_rest", (float)config.EliteBeforeRestBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_treasure_before_elite", (float)config.TreasureBeforeEliteBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_two_before_elite", (float)config.RestTwoBeforeEliteBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_two_before_rest", (float)config.EliteTwoBeforeRestBonus });
 
                 var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
                     MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
@@ -374,6 +454,21 @@ public static class RouteSuggest
                     }
                 }));
 
+            // Expert mode toggle
+            entries.Add(MakeEntry("expert_mode", "Enable Expert Scoring",
+                GetConfigType("Toggle"),
+                defaultValue: false,
+                labels: new() { { "zhs", "启用专家模式" } },
+                descriptions: new() { { "en", "Enable additional scoring rules" }, { "zhs", "启用额外的计分规则" } },
+                onChanged: (value) =>
+                {
+                    if ((bool)value != CurrentExpertMode) {
+                        CurrentExpertMode = (bool)value;
+                        SaveAndUpdatePath();
+                        // Re-register to refresh UI
+                        DeferredRegisterModConfig();
+                    }
+                }));
 
             entries.Add(MakeEntry("", "", GetConfigType("Separator")));
 
@@ -573,6 +668,51 @@ public static class RouteSuggest
                         }));
                 }
 
+                if (CurrentExpertMode)
+                {
+                    entries.Add(MakeEntry("", "", GetConfigType("Separator")));
+
+                    entries.Add(MakeEntry("", "Expert Scoring", GetConfigType("Header"),
+                        labels: new() { { "zhs", "专家评分" } }));
+
+                    // Adjacency bonuses
+                    void AddAdjacencySlider(string key, string label, string zhsLabel, string enDesc, string zhsDesc,
+                        Action<int> setter, int defaultVal = 0, int min = -100, int max = 100)
+                    {
+                        entries.Add(MakeEntry($"path_{i}_{key}", label,
+                            GetConfigType("Slider"),
+                            defaultValue: (float)defaultVal,
+                            min: min, max: max, step: 1, format: "F0",
+                            labels: new() { { "zhs", zhsLabel } },
+                            descriptions: new() { { "en", enDesc }, { "zhs", zhsDesc } },
+                            onChanged: (value) =>
+                            {
+                                setter((int)(float)value);
+                                SaveAndUpdatePath();
+                            }));
+                    }
+
+                    AddAdjacencySlider("rest_before_elite", "Rest -> Elite", "休息 -> 精英",
+                        "Bonus when Rest is directly followed by Elite", "休息处后直接是精英的奖励",
+                        v => config.RestBeforeEliteBonus = v);
+
+                    AddAdjacencySlider("elite_before_rest", "Elite -> Rest", "精英 -> 休息",
+                        "Bonus when Elite is directly followed by Rest", "精英后直接是休息处的奖励",
+                        v => config.EliteBeforeRestBonus = v);
+
+                    AddAdjacencySlider("treasure_before_elite", "Treasure -> Elite", "宝箱 -> 精英",
+                        "Bonus when Treasure is directly followed by Elite", "宝箱后直接是精英的奖励",
+                        v => config.TreasureBeforeEliteBonus = v);
+
+                    AddAdjacencySlider("rest_two_before_elite", "Rest -> Any -> Elite", "休息处 -> 任意 -> 精英",
+                        "Bonus when Rest is followed by Elite with one node in between", "休息处和后续精英之间隔一个结点的奖励",
+                        v => config.RestTwoBeforeEliteBonus = v);
+
+                    AddAdjacencySlider("elite_two_before_rest", "Elite -> Any -> Rest", "精英 -> 任意 -> 休息处",
+                        "Bonus when Elite is followed by Rest with one node in between", "精英和后续休息处之间隔一个结点的奖励",
+                        v => config.EliteTwoBeforeRestBonus = v);
+                }
+
                 entries.Add(MakeEntry("", "", GetConfigType("Separator")));
             }
 
@@ -673,8 +813,9 @@ public static class RouteSuggest
 
             var configData = new ConfigFile
             {
-                SchemaVersion = 3,
+                SchemaVersion = 4,
                 HighlightType = CurrentHighlightType.ToString(),
+                ExpertMode = CurrentExpertMode,
                 PathConfigs = new List<PathConfigEntry>()
             };
 
@@ -686,6 +827,11 @@ public static class RouteSuggest
                     Color = $"#{config.Color.ToHtml(false)}",
                     Priority = config.Priority,
                     Enabled = config.Enabled,
+                    RestBeforeEliteBonus = config.RestBeforeEliteBonus,
+                    EliteBeforeRestBonus = config.EliteBeforeRestBonus,
+                    TreasureBeforeEliteBonus = config.TreasureBeforeEliteBonus,
+                    RestTwoBeforeEliteBonus = config.RestTwoBeforeEliteBonus,
+                    EliteTwoBeforeRestBonus = config.EliteTwoBeforeRestBonus,
                     ScoringWeights = new Dictionary<string, int>()
                 };
 
@@ -721,6 +867,7 @@ public static class RouteSuggest
     public static void ResetToDefault()
     {
         CurrentHighlightType = HighlightType.One;
+        CurrentExpertMode = false;
 
         PathConfigs.Clear();
         foreach (var defaultConfig in DefaultPathConfigs)
@@ -766,7 +913,7 @@ public static class RouteSuggest
 
             var configData = JsonSerializer.Deserialize<ConfigFile>(json, options);
 
-            if (configData?.SchemaVersion != 1 && configData?.SchemaVersion != 2 && configData?.SchemaVersion != 3)
+            if (configData?.SchemaVersion < 1 || configData?.SchemaVersion > 4)
             {
                 LogWithTimestamp($"Unsupported schema version {configData?.SchemaVersion}, using defaults");
                 return;
@@ -781,6 +928,10 @@ public static class RouteSuggest
                     LogWithTimestamp($"Loaded highlight type: {loadedType}");
                 }
             }
+
+            // Load expert mode if present (schema v4+)
+            CurrentExpertMode = configData.ExpertMode;
+            LogWithTimestamp($"Loaded expert mode: {CurrentExpertMode}");
 
             if (configData.PathConfigs == null)
             {
@@ -798,6 +949,11 @@ public static class RouteSuggest
                     Priority = configEntry.Priority,
                     Color = ParseColor(configEntry.Color),
                     Enabled = configEntry.Enabled,
+                    RestBeforeEliteBonus = configEntry.RestBeforeEliteBonus,
+                    EliteBeforeRestBonus = configEntry.EliteBeforeRestBonus,
+                    TreasureBeforeEliteBonus = configEntry.TreasureBeforeEliteBonus,
+                    RestTwoBeforeEliteBonus = configEntry.RestTwoBeforeEliteBonus,
+                    EliteTwoBeforeRestBonus = configEntry.EliteTwoBeforeRestBonus,
                     ScoringWeights = ParseScoringWeights(configEntry.ScoringWeights)
                 };
                 PathConfigs.Add(config);
@@ -820,6 +976,8 @@ public static class RouteSuggest
         LogWithTimestamp("Current Path Configurations:");
         LogWithTimestamp("==========================================");
 
+        LogWithTimestamp($"Expert Mode (global): {CurrentExpertMode}");
+
         foreach (var config in PathConfigs)
         {
             LogWithTimestamp($"  Path: {config.Name} (Enabled: {config.Enabled})");
@@ -830,6 +988,16 @@ public static class RouteSuggest
             foreach (var weight in config.ScoringWeights.OrderBy(w => w.Key.ToString()))
             {
                 LogWithTimestamp($"      {weight.Key}: {weight.Value:+0;-0;0}");
+            }
+
+            if (CurrentExpertMode)
+            {
+                LogWithTimestamp($"    Adjacency Bonuses:");
+                LogWithTimestamp($"      Rest -> Elite:       {config.RestBeforeEliteBonus:+0;-0;0}");
+                LogWithTimestamp($"      Elite -> Rest:       {config.EliteBeforeRestBonus:+0;-0;0}");
+                LogWithTimestamp($"      Treasure -> Elite:   {config.TreasureBeforeEliteBonus:+0;-0;0}");
+                LogWithTimestamp($"      Rest -> * -> Elite:  {config.RestTwoBeforeEliteBonus:+0;-0;0}");
+                LogWithTimestamp($"      Elite -> * -> Rest:  {config.EliteTwoBeforeRestBonus:+0;-0;0}");
             }
 
             LogWithTimestamp("");
@@ -906,9 +1074,10 @@ public static class RouteSuggest
     private class ConfigFile
     {
         /// <summary>
-        /// Schema version for config file compatibility. Supported versions: 1, 2, and 3.
+        /// Schema version for config file compatibility. Supported versions: 1, 2, 3, and 4.
         /// Version 2 adds highlight_type support.
         /// Version 3 adds enabled field to path configs.
+        /// Version 4 adds expert_mode and adjacency bonus fields.
         /// </summary>
         [JsonPropertyName("schema_version")]
         public int SchemaVersion { get; set; }
@@ -918,6 +1087,12 @@ public static class RouteSuggest
         /// </summary>
         [JsonPropertyName("highlight_type")]
         public string HighlightType { get; set; }
+
+        /// <summary>
+        /// Whether expert scoring (adjacency bonuses) is enabled for all path configs.
+        /// </summary>
+        [JsonPropertyName("expert_mode")]
+        public bool ExpertMode { get; set; } = false;
 
         /// <summary>
         /// List of path configurations to load.
@@ -960,6 +1135,36 @@ public static class RouteSuggest
         /// </summary>
         [JsonPropertyName("scoring_weights")]
         public Dictionary<string, int> ScoringWeights { get; set; }
+
+        /// <summary>
+        /// Bonus when Rest is directly followed by Elite.
+        /// </summary>
+        [JsonPropertyName("rest_before_elite_bonus")]
+        public int RestBeforeEliteBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when Elite is directly followed by Rest.
+        /// </summary>
+        [JsonPropertyName("elite_before_rest_bonus")]
+        public int EliteBeforeRestBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when Treasure is directly followed by Elite.
+        /// </summary>
+        [JsonPropertyName("treasure_before_elite_bonus")]
+        public int TreasureBeforeEliteBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when Rest is followed by Elite with exactly one node in between.
+        /// </summary>
+        [JsonPropertyName("rest_two_before_elite_bonus")]
+        public int RestTwoBeforeEliteBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when Elite is followed by Rest with exactly one node in between.
+        /// </summary>
+        [JsonPropertyName("elite_two_before_rest_bonus")]
+        public int EliteTwoBeforeRestBonus { get; set; } = 0;
     }
 
     /// <summary>
@@ -1131,7 +1336,7 @@ public static class RouteSuggest
                 var paths = FindOptimalPaths(startPoint, config);
                 if (paths.Count > 0)
                 {
-                    int score = config.CalculateScore(paths[0]);
+                    int score = config.CalculateScore(paths[0], CurrentExpertMode);
                     LogWithTimestamp($"{config.Name}: {paths.Count} optimal path(s) found with score {score}");
                     CalculatedPaths[config.Name] = paths;
                 }
@@ -1180,7 +1385,7 @@ public static class RouteSuggest
 
         for (int i = 0; i < allPaths.Count; i++)
         {
-            int score = config.CalculateScore(allPaths[i]);
+            int score = config.CalculateScore(allPaths[i], CurrentExpertMode);
             LogWithTimestamp($"Path {i + 1} score: {score}");
 
             if (score > bestScore)

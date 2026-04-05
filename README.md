@@ -13,6 +13,7 @@ A mod for Slay the Spire 2 that suggests the optimal path through the map and hi
   - **Gold**: Safe path (minimizes risk)
   - **Red**: Aggressive path (prioritizes combat for rewards)
 - **Smart scoring**: Different weights for safe vs aggressive playstyles
+- **Expert scoring**: Optional adjacency bonuses that reward positional patterns (e.g., Rest before Elite)
 - **GUI Configuration**: Full in-game configuration via [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) (optional)
 - **Manual Configuration**: Direct JSON configuration for advanced users
 
@@ -80,6 +81,20 @@ Prioritizes combat rewards and unknown encounters:
 
 When both paths share an edge, it appears in gold.
 
+### Expert Scoring (Adjacency Bonuses)
+
+Each path can optionally enable **Expert Mode** to apply positional bonuses on top of base weights. Expert Mode is a global toggle that affects all paths. These reward specific node sequences:
+
+| Pattern | Description | Default |
+|---------|-------------|---------|
+| **Rest -> Elite** | Rest site directly before an elite encounter | 0 |
+| **Elite -> Rest** | Elite encounter directly before a rest site | 0 |
+| **Treasure -> Elite** | Treasure room directly before an elite encounter | 0 |
+| **Rest -> \* -> Elite** | Rest site two steps before an elite (one node in between) | 0 |
+| **Elite -> \* -> Rest** | Elite encounter two steps before a rest site | 0 |
+
+All bonuses default to 0 (disabled). When Expert Mode is off, scoring is identical to before. The toggle and bonuses are configurable via ModConfig GUI or JSON.
+
 ## Configuration
 
 ### GUI Settings (Recommended)
@@ -92,6 +107,7 @@ With ModConfig GUI, you can:
   - **Highlight Type**: Choose to highlight one optimal path or all paths with optimal score
     - **One**: Pick one path from among optimal paths
     - **All**: Highlight all paths tied for the best score
+  - **Enable Expert Scoring**: Global toggle to enable adjacency bonuses (affects all paths)
 - **Configure each path**:
   - **Enabled**: Toggle to enable/disable this path (disabled paths are not calculated or shown)
   - **Name**: Identifier for the path
@@ -101,6 +117,7 @@ With ModConfig GUI, you can:
     - Positive = prefer this room type
     - Negative = avoid this room type
     - Zero = neutral
+  - **Expert Scoring**: 5 adjacency bonus sliders for positional patterns (Rest -> Elite, etc.)
 - **Add New Path**: Slider to add a new path (slide to 1)
 - **Remove Path**: Each path has a slider to remove it (0=keep, 1=remove)
 - **Reset to Defaults**: Slider to reset all paths to default configuration
@@ -116,14 +133,20 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "highlight_type": "One",
+  "expert_mode": false,
   "path_configs": [
     {
       "name": "Safe",
       "color": "#FFD700",
       "priority": 100,
       "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -137,6 +160,11 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
       "color": "#FF0000",
       "priority": 50,
       "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -150,13 +178,19 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 }
 ```
 
-- **schema_version**: Config file format version (3 is the current version)
+- **schema_version**: Config file format version (4 is the current version)
 - **highlight_type**: "One" (pick one optimal path) or "All" (highlight all paths with optimal score)
+- **expert_mode**: Set to `true` to enable adjacency bonuses (affects all path configs)
 - **name**: Identifier for the path (e.g., "Safe", "Aggressive")
 - **enabled**: Set to `false` to disable a path (disabled paths are not calculated or shown)
 - **color**: Hex color code (e.g., `#FFD700` for gold, `#FF0000` for red)
 - **priority**: Higher values render on top when paths overlap
 - **scoring_weights**: Integer values for each room type (positive = preferred, negative = avoid)
+- **rest_before_elite_bonus**: Bonus when Rest is directly followed by Elite
+- **elite_before_rest_bonus**: Bonus when Elite is directly followed by Rest
+- **treasure_before_elite_bonus**: Bonus when Treasure is directly followed by Elite
+- **rest_two_before_elite_bonus**: Bonus when Rest is followed by Elite with one node in between
+- **elite_two_before_rest_bonus**: Bonus when Elite is followed by Rest with one node in between
 
 Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unknown`, `Boss`
 
@@ -172,6 +206,10 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 - Tested on game beta v0.101.0
 - Now the mod integrates with newly added Button/ColorPicker controls introduced in ModConfig v0.2.1, and it will use them if available, and fallback for older ModConfig versions
+- Added expert scoring mode with adjacency bonuses (schema version 4)
+  - 5 adjacency bonus sliders: Rest->Elite, Elite->Rest, Treasure->Elite, Rest->\*->Elite, Elite->\*->Rest
+  - Available in both ModConfig GUI and JSON config
+  - All bonuses default to 0, no impact when expert mode is off
 
 ### v1.8.0
 

@@ -1,12 +1,18 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "highlight_type": "One",
+  "expert_mode": false,
   "path_configs": [
     {
       "name": "Safe",
       "color": "#FFD700",
       "priority": 100,
       "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -20,6 +26,11 @@
       "color": "#FF0000",
       "priority": 50,
       "enabled": true,
+      "rest_before_elite_bonus": 0,
+      "elite_before_rest_bonus": 0,
+      "treasure_before_elite_bonus": 0,
+      "rest_two_before_elite_bonus": 0,
+      "elite_two_before_rest_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
