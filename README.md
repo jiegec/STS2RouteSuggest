@@ -1,5 +1,7 @@
 # RouteSuggest - Slay the Spire 2 Mod
 
+English | [简体中文](README_zh.md)
+
 ![](screenshot.png)
 
 A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in gold/red on the map screen.
@@ -105,7 +107,7 @@ With ModConfig GUI, you can:
 
 - **General Settings**:
   - **Highlight Type**: Choose to highlight one optimal path or all paths with optimal score
-    - **One**: Pick one path from among optimal paths
+    - **One**: Pick one path to highlight from among optimal paths
     - **All**: Highlight all paths tied for the best score
   - **Enable Expert Scoring**: Global toggle to enable adjacency bonuses (affects all paths)
 - **Configure each path**:
