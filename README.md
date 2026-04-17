@@ -6,7 +6,7 @@ English | [简体中文](README_zh.md)
 
 A mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in gold/red on the map screen.
 
-**Supported game versions:** v0.99.1 and v0.102.0 (public beta)
+**Supported game versions:** v0.103.2
 
 ## Features
 
