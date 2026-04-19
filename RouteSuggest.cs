@@ -362,6 +362,7 @@ public static class RouteSuggest
                 object defaultValue = null, float min = 0, float max = 100, float step = 1,
                 string format = "F0", string[] options = null,
                 Dictionary<string, string> labels = null,
+                string description = null,
                 Dictionary<string, string> descriptions = null,
                 Action<object> onChanged = null)
             {
@@ -379,6 +380,8 @@ public static class RouteSuggest
                     entryType.GetProperty("Options")?.SetValue(entry, options);
                 if (labels != null)
                     entryType.GetProperty("Labels")?.SetValue(entry, labels);
+                if (description != null)
+                    entryType.GetProperty("Description")?.SetValue(entry, description);
                 if (descriptions != null)
                     entryType.GetProperty("Descriptions")?.SetValue(entry, descriptions);
                 if (onChanged != null)
@@ -425,7 +428,8 @@ public static class RouteSuggest
                 GetConfigType("Toggle"),
                 defaultValue: true,
                 labels: new() { { "zhs", "重置为默认值" } },
-                descriptions: new() { { "en", "Toggle to reset all configurations to default" }, { "zhs", "点击以重置所有配置为默认值" } },
+                description: "Toggle to reset all configurations to default",
+                descriptions: new() { { "zhs", "点击以重置所有配置为默认值" } },
                 onChanged: (value) =>
                 {
                     if ((bool)value)
@@ -444,7 +448,8 @@ public static class RouteSuggest
                 defaultValue: HighlightType.One.ToString(),
                 options: new[] { "One", "All" },
                 labels: new() { { "zhs", "高亮类型" } },
-                descriptions: new() { { "en", "Pick one path from optimal paths (One) or highlight all optimal paths (All)" }, { "zhs", "从最优路径中选择一条 (One) 或高亮所有最优路径 (All)" } },
+                description: "Pick one path from optimal paths (One) or highlight all optimal paths (All)",
+                descriptions: new() { { "zhs", "从最优路径中选择一条 (One) 或高亮所有最优路径 (All)" } },
                 onChanged: (value) =>
                 {
                     if (Enum.TryParse<HighlightType>((string)value, out var newType))
@@ -459,10 +464,12 @@ public static class RouteSuggest
                 GetConfigType("Toggle"),
                 defaultValue: false,
                 labels: new() { { "zhs", "启用专家模式" } },
-                descriptions: new() { { "en", "Enable additional scoring rules" }, { "zhs", "启用额外的计分规则" } },
+                description: "Enable additional scoring rules",
+                descriptions: new() { { "zhs", "启用额外的计分规则" } },
                 onChanged: (value) =>
                 {
-                    if ((bool)value != CurrentExpertMode) {
+                    if ((bool)value != CurrentExpertMode)
+                    {
                         CurrentExpertMode = (bool)value;
                         SaveAndUpdatePath();
                         // Re-register to refresh UI
@@ -481,7 +488,8 @@ public static class RouteSuggest
                 buttonOrToggle,
                 defaultValue: false,
                 labels: new() { { "zhs", "添加新路径" } },
-                descriptions: new() { { "en", "Toggle to add a new path configuration" }, { "zhs", "点击以添加新的路径配置" } },
+                description: "Toggle to add a new path configuration",
+                descriptions: new() { { "zhs", "点击以添加新的路径配置" } },
                 onChanged: (value) =>
                 {
                     if ((bool)value)
@@ -520,7 +528,8 @@ public static class RouteSuggest
                     buttonOrToggle,
                     defaultValue: false,
                     labels: new() { { "zhs", "删除路径" } },
-                    descriptions: new() { { "en", "Toggle to remove this path configuration" }, { "zhs", "点击以删除此路径配置" } },
+                    description: "Toggle to remove this path configuration",
+                    descriptions: new() { { "zhs", "点击以删除此路径配置" } },
                     onChanged: (value) =>
                     {
                         if ((bool)value)
@@ -538,7 +547,8 @@ public static class RouteSuggest
                     GetConfigType("Toggle"),
                     defaultValue: true,
                     labels: new() { { "zhs", "是否启用" } },
-                    descriptions: new() { { "en", "Enable or disable this path" }, { "zhs", "启用或禁用此路径" } },
+                    description: "Enable or disable this path",
+                    descriptions: new() { { "zhs", "启用或禁用此路径" } },
                     onChanged: (value) =>
                     {
                         config.Enabled = (bool)value;
@@ -555,7 +565,8 @@ public static class RouteSuggest
                 entries.Add(MakeEntry($"path_{i}_name", "Name", GetConfigType("TextInput"),
                     defaultValue: defaultName,
                     labels: new() { { "zhs", "名称" } },
-                    descriptions: new() { { "en", "The name of this path" }, { "zhs", "此路径的名称" } },
+                    description: "The name of this path",
+                    descriptions: new() { { "zhs", "此路径的名称" } },
                     onChanged: (value) =>
                     {
                         config.Name = (string)value;
@@ -572,7 +583,8 @@ public static class RouteSuggest
                     colorPickerOrTextInput,
                     defaultValue: $"#{defaultColor.ToHtml(false)}",
                     labels: new() { { "zhs", "颜色 (十六进制, 如 #FFD700)" } },
-                    descriptions: new() { { "en", "Hex color code for path highlighting" }, { "zhs", "用于路径高亮的十六进制颜色代码" } },
+                    description: "Hex color code for path highlighting",
+                    descriptions: new() { { "zhs", "用于路径高亮的十六进制颜色代码" } },
                     onChanged: (value) =>
                     {
                         config.Color = ParseColor((string)value);
@@ -590,7 +602,8 @@ public static class RouteSuggest
                     defaultValue: (float)defaultPriority,
                     min: 0, max: 200, step: 10, format: "F0",
                     labels: new() { { "zhs", "优先级 (越高越靠前)" } },
-                    descriptions: new() { { "en", "Higher priority paths are rendered on top of lower priority paths" }, { "zhs", "优先级高的路径会覆盖优先级低的路径" } },
+                    description: "Higher priority paths are rendered on top of lower priority paths",
+                    descriptions: new() { { "zhs", "优先级高的路径会覆盖优先级低的路径" } },
                     onChanged: (value) =>
                     {
                         config.Priority = (int)(float)value;
@@ -619,7 +632,6 @@ public static class RouteSuggest
                     };
                     var roomDescriptions = new Dictionary<string, string>
                     {
-                        { "en", $"Scoring weight for {roomType} rooms" }
                     };
 
                     // Add Chinese translations for room types
@@ -660,6 +672,7 @@ public static class RouteSuggest
                         defaultValue: (float)weight,
                         min: -100, max: 100, step: 1, format: "F0",
                         labels: roomLabels,
+                        description: $"Scoring weight for {roomType} rooms",
                         descriptions: roomDescriptions,
                         onChanged: (value) =>
                         {
@@ -684,7 +697,8 @@ public static class RouteSuggest
                             defaultValue: (float)defaultVal,
                             min: min, max: max, step: 1, format: "F0",
                             labels: new() { { "zhs", zhsLabel } },
-                            descriptions: new() { { "en", enDesc }, { "zhs", zhsDesc } },
+                            description: enDesc,
+                            descriptions: new() { { "zhs", zhsDesc } },
                             onChanged: (value) =>
                             {
                                 setter((int)(float)value);
