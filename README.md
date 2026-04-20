@@ -94,6 +94,9 @@ Each path can optionally enable **Expert Mode** to apply positional bonuses on t
 | **Treasure -> Elite** | Treasure room directly before an elite encounter | 0 |
 | **Rest -> Any -> Elite** | Rest site two steps before an elite (one node in between) | 0 |
 | **Elite -> Any -> Rest** | Elite encounter two steps before a rest site | 0 |
+| **0 Shops to Boss** | Route to Boss contains zero shops (excl. current point) | 0 |
+| **1 Shop to Boss** | Route to Boss contains exactly one shop (excl. current point) | 0 |
+| **2 Shops to Boss** | Route to Boss contains exactly two shops (excl. current point) | 0 |
 
 All bonuses default to 0 (disabled). When Expert Mode is off, scoring is identical to before. The toggle and bonuses are configurable via ModConfig GUI or JSON.
 
@@ -119,7 +122,7 @@ With ModConfig GUI, you can:
     - Positive = prefer this room type
     - Negative = avoid this room type
     - Zero = neutral
-  - **Expert Scoring**: 5 adjacency bonus sliders for positional patterns (Rest -> Elite, etc.)
+  - **Expert Scoring**: sliders for positional patterns (Rest -> Elite, etc.) and shop count bonuses
 - **Add New Path**: Slider to add a new path (slide to 1)
 - **Remove Path**: Each path has a slider to remove it (0=keep, 1=remove)
 - **Reset to Defaults**: Slider to reset all paths to default configuration
@@ -135,7 +138,7 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "highlight_type": "One",
   "expert_mode": false,
   "path_configs": [
@@ -149,6 +152,9 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
       "treasure_before_elite_bonus": 0,
       "rest_two_before_elite_bonus": 0,
       "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -167,6 +173,9 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
       "treasure_before_elite_bonus": 0,
       "rest_two_before_elite_bonus": 0,
       "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -180,7 +189,7 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 }
 ```
 
-- **schema_version**: Config file format version (4 is the current version)
+- **schema_version**: Config file format version (5 is the current version)
 - **highlight_type**: "One" (pick one optimal path) or "All" (highlight all paths with optimal score)
 - **expert_mode**: Set to `true` to enable adjacency bonuses (affects all path configs)
 - **name**: Identifier for the path (e.g., "Safe", "Aggressive")
@@ -193,6 +202,9 @@ Alternatively, you can customize the path types by manually editing `RouteSugges
 - **treasure_before_elite_bonus**: Bonus when Treasure is directly followed by Elite
 - **rest_two_before_elite_bonus**: Bonus when Rest is followed by Elite with one node in between
 - **elite_two_before_rest_bonus**: Bonus when Elite is followed by Rest with one node in between
+- **zero_shops_bonus**: Bonus when route to Boss has zero shops (excl. current point)
+- **one_shop_bonus**: Bonus when route to Boss has exactly one shop (excl. current point)
+- **two_shops_bonus**: Bonus when route to Boss has exactly two shops (excl. current point)
 
 Available room types: `RestSite`, `Treasure`, `Shop`, `Monster`, `Elite`, `Unknown`, `Boss`
 
@@ -203,6 +215,14 @@ If the config file is missing or invalid, default path configs are used.
 Users have shared their custom configurations on the [Nexus Mods posts page](https://www.nexusmods.com/slaythespire2/mods/54?tab=posts). Check them out for inspiration or to find configs that match your playstyle.
 
 ## Changelog
+
+### v1.10.0
+
+- Added shop count bonuses to expert scoring mode (schema version 5)
+  - 3 new bonus sliders: 0 Shops to Boss, 1 Shop to Boss, 2 Shops to Boss
+  - Bonuses apply based on the number of shops on the route to Boss, excluding the current map point
+  - Available in both ModConfig GUI and JSON config
+  - All bonuses default to 0
 
 ### v1.9.0
 

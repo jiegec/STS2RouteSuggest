@@ -94,6 +94,9 @@ cd RouteSuggest
 | **宝箱 -> 精英**         | 精英战前直接是宝箱房                 | 0      |
 | **休息 -> 任意 -> 精英** | 精英战前两格是休息处（中间隔一个结点） | 0      |
 | **精英 -> 任意 -> 休息** | 休息处前两格是精英战（中间隔一个结点） | 0      |
+| **0 商店到 Boss**        | 到 Boss 路上没有商店（不含当前点）   | 0      |
+| **1 商店到 Boss**        | 到 Boss 路上有 1 个商店（不含当前点） | 0      |
+| **2 商店到 Boss**        | 到 Boss 路上有 2 个商店（不含当前点） | 0      |
 
 所有加成默认值均为 0（即关闭）。当专家模式关闭时，评分系统与之前完全一致。该开关和各项加成均可通过 ModConfig 图形界面或 JSON 配置。
 
@@ -119,7 +122,7 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
     - 正值 = 偏好该房间类型
     - 负值 = 避开该房间类型
     - 零 = 中立
-  - **专家评分**：5 个相邻结点加成滑动条（休息->精英 等）
+  - **专家评分**：滑动条设置相邻结点（休息->精英 等）和商店数量加成
 - **添加新路线**：滑动条设置为 1 以添加新路线
 - **移除路线**：每条路线有一个滑动条用于移除（0=保留，1=移除）
 - **恢复默认**：滑动条恢复所有路线的默认配置
@@ -135,7 +138,7 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "highlight_type": "One",
   "expert_mode": false,
   "path_configs": [
@@ -149,6 +152,9 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
       "treasure_before_elite_bonus": 0,
       "rest_two_before_elite_bonus": 0,
       "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -167,6 +173,9 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
       "treasure_before_elite_bonus": 0,
       "rest_two_before_elite_bonus": 0,
       "elite_two_before_rest_bonus": 0,
+      "zero_shops_bonus": 0,
+      "one_shop_bonus": 0,
+      "two_shops_bonus": 0,
       "scoring_weights": {
         "RestSite": 1,
         "Treasure": 1,
@@ -180,7 +189,7 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 }
 ```
 
-- **schema_version**：配置文件格式版本（当前版本为 4）
+- **schema_version**：配置文件格式版本（当前版本为 5）
 - **highlight_type**：`"One"`（选择一条最优路线）或 `"All"`（高亮所有得分相同的最优路线）
 - **expert_mode**：设为 `true` 以启用相邻结点加成（影响所有路线配置）
 - **name**：路线的标识名称（例如 "Safe"、"Aggressive"）
@@ -193,6 +202,9 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 - **treasure_before_elite_bonus**：宝箱房后紧跟精英战的加成
 - **rest_two_before_elite_bonus**：休息处后隔一个结点是精英战的加成
 - **elite_two_before_rest_bonus**：精英战后隔一个结点是休息处的加成
+- **zero_shops_bonus**：到 Boss 路上没有商店的加成（不含当前点）
+- **one_shop_bonus**：到 Boss 路上有 1 个商店的加成（不含当前点）
+- **two_shops_bonus**：到 Boss 路上有 2 个商店的加成（不含当前点）
 
 可用房间类型：`RestSite`、`Treasure`、`Shop`、`Monster`、`Elite`、`Unknown`、`Boss`
 
@@ -203,6 +215,14 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 玩家们在 [Nexus Mods 讨论区](https://www.nexusmods.com/slaythespire2/mods/54?tab=posts) 分享了他们的自定义配置。可以去看看获取灵感，或找到适合你玩法的配置。
 
 ## 更新日志
+
+### v1.10.0
+
+- 专家评分模式新增商店数量加成（schema version 5）
+  - 新增 3 个加成滑动条：0 商店到 Boss、1 商店到 Boss、2 商店到 Boss
+  - 根据到 Boss 路上商店数量（不含当前点）给予加成
+  - 在 ModConfig 图形界面和 JSON 配置中均可用
+  - 所有加成默认为 0
 
 ### v1.9.0
 

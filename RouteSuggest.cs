@@ -71,6 +71,21 @@ public class PathConfig
     public int EliteTwoBeforeRestBonus { get; set; } = 0;
 
     /// <summary>
+    /// Bonus when there are zero shops on the route to Boss (excluding the current map point).
+    /// </summary>
+    public int ZeroShopsBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when there is exactly one shop on the route to Boss (excluding the current map point).
+    /// </summary>
+    public int OneShopBonus { get; set; } = 0;
+
+    /// <summary>
+    /// Bonus when there are exactly two shops on the route to Boss (excluding the current map point).
+    /// </summary>
+    public int TwoShopsBonus { get; set; } = 0;
+
+    /// <summary>
     /// Calculates the total score for a given path using this configuration's scoring weights.
     /// When expertMode is true, also applies adjacency bonuses.
     /// </summary>
@@ -129,6 +144,21 @@ public class PathConfig
 
             if (curr == MapPointType.Elite && after == MapPointType.RestSite)
                 bonus += EliteTwoBeforeRestBonus;
+        }
+
+        // Count shops on route to Boss, excluding the current map point (path[0])
+        int shopCount = 0;
+        for (int i = 1; i < path.Count; i++)
+        {
+            if (path[i].PointType == MapPointType.Shop)
+                shopCount++;
+        }
+
+        switch (shopCount)
+        {
+            case 0: bonus += ZeroShopsBonus; break;
+            case 1: bonus += OneShopBonus; break;
+            case 2: bonus += TwoShopsBonus; break;
         }
 
         return bonus;
@@ -725,6 +755,18 @@ public static class RouteSuggest
                     AddAdjacencySlider("elite_two_before_rest", "Elite -> Any -> Rest", "精英 -> 任意 -> 休息处",
                         "Bonus when Elite is followed by Rest with one node in between", "精英和后续休息处之间隔一个结点的奖励",
                         v => config.EliteTwoBeforeRestBonus = v);
+
+                    AddAdjacencySlider("zero_shops", "0 Shops to Boss", "0 商店到 Boss",
+                        "Bonus when there are zero shops on route to Boss (excl. current)", "到 Boss 路上没有商店的奖励（不含当前点）",
+                        v => config.ZeroShopsBonus = v);
+
+                    AddAdjacencySlider("one_shop", "1 Shop to Boss", "1 商店到 Boss",
+                        "Bonus when there is exactly one shop on route to Boss (excl. current)", "到 Boss 路上有 1 个商店的奖励（不含当前点）",
+                        v => config.OneShopBonus = v);
+
+                    AddAdjacencySlider("two_shops", "2 Shops to Boss", "2 商店到 Boss",
+                        "Bonus when there are exactly two shops on route to Boss (excl. current)", "到 Boss 路上有 2 个商店的奖励（不含当前点）",
+                        v => config.TwoShopsBonus = v);
                 }
 
                 entries.Add(MakeEntry("", "", GetConfigType("Separator")));
@@ -827,7 +869,7 @@ public static class RouteSuggest
 
             var configData = new ConfigFile
             {
-                SchemaVersion = 4,
+                SchemaVersion = 5,
                 HighlightType = CurrentHighlightType.ToString(),
                 ExpertMode = CurrentExpertMode,
                 PathConfigs = new List<PathConfigEntry>()
@@ -846,6 +888,9 @@ public static class RouteSuggest
                     TreasureBeforeEliteBonus = config.TreasureBeforeEliteBonus,
                     RestTwoBeforeEliteBonus = config.RestTwoBeforeEliteBonus,
                     EliteTwoBeforeRestBonus = config.EliteTwoBeforeRestBonus,
+                    ZeroShopsBonus = config.ZeroShopsBonus,
+                    OneShopBonus = config.OneShopBonus,
+                    TwoShopsBonus = config.TwoShopsBonus,
                     ScoringWeights = new Dictionary<string, int>()
                 };
 
@@ -927,7 +972,7 @@ public static class RouteSuggest
 
             var configData = JsonSerializer.Deserialize<ConfigFile>(json, options);
 
-            if (configData?.SchemaVersion < 1 || configData?.SchemaVersion > 4)
+            if (configData?.SchemaVersion < 1 || configData?.SchemaVersion > 5)
             {
                 LogWithTimestamp($"Unsupported schema version {configData?.SchemaVersion}, using defaults");
                 return;
@@ -968,6 +1013,9 @@ public static class RouteSuggest
                     TreasureBeforeEliteBonus = configEntry.TreasureBeforeEliteBonus,
                     RestTwoBeforeEliteBonus = configEntry.RestTwoBeforeEliteBonus,
                     EliteTwoBeforeRestBonus = configEntry.EliteTwoBeforeRestBonus,
+                    ZeroShopsBonus = configEntry.ZeroShopsBonus,
+                    OneShopBonus = configEntry.OneShopBonus,
+                    TwoShopsBonus = configEntry.TwoShopsBonus,
                     ScoringWeights = ParseScoringWeights(configEntry.ScoringWeights)
                 };
                 PathConfigs.Add(config);
@@ -1012,6 +1060,10 @@ public static class RouteSuggest
                 LogWithTimestamp($"      Treasure -> Elite:   {config.TreasureBeforeEliteBonus:+0;-0;0}");
                 LogWithTimestamp($"      Rest -> Any -> Elite:  {config.RestTwoBeforeEliteBonus:+0;-0;0}");
                 LogWithTimestamp($"      Elite -> Any -> Rest:  {config.EliteTwoBeforeRestBonus:+0;-0;0}");
+                LogWithTimestamp($"    Shop Count Bonuses:");
+                LogWithTimestamp($"      0 Shops to Boss:     {config.ZeroShopsBonus:+0;-0;0}");
+                LogWithTimestamp($"      1 Shop to Boss:      {config.OneShopBonus:+0;-0;0}");
+                LogWithTimestamp($"      2 Shops to Boss:     {config.TwoShopsBonus:+0;-0;0}");
             }
 
             LogWithTimestamp("");
@@ -1088,10 +1140,11 @@ public static class RouteSuggest
     private class ConfigFile
     {
         /// <summary>
-        /// Schema version for config file compatibility. Supported versions: 1, 2, 3, and 4.
+        /// Schema version for config file compatibility. Supported versions: 1, 2, 3, 4, and 5.
         /// Version 2 adds highlight_type support.
         /// Version 3 adds enabled field to path configs.
         /// Version 4 adds expert_mode and adjacency bonus fields.
+        /// Version 5 adds shop count bonus fields.
         /// </summary>
         [JsonPropertyName("schema_version")]
         public int SchemaVersion { get; set; }
@@ -1179,6 +1232,24 @@ public static class RouteSuggest
         /// </summary>
         [JsonPropertyName("elite_two_before_rest_bonus")]
         public int EliteTwoBeforeRestBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when there are zero shops on the route to Boss (excluding the current map point).
+        /// </summary>
+        [JsonPropertyName("zero_shops_bonus")]
+        public int ZeroShopsBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when there is exactly one shop on the route to Boss (excluding the current map point).
+        /// </summary>
+        [JsonPropertyName("one_shop_bonus")]
+        public int OneShopBonus { get; set; } = 0;
+
+        /// <summary>
+        /// Bonus when there are exactly two shops on the route to Boss (excluding the current map point).
+        /// </summary>
+        [JsonPropertyName("two_shops_bonus")]
+        public int TwoShopsBonus { get; set; } = 0;
     }
 
     /// <summary>
