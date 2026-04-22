@@ -370,6 +370,9 @@ public static class RouteSuggest
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_treasure_before_elite", (float)config.TreasureBeforeEliteBonus });
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_two_before_elite", (float)config.RestTwoBeforeEliteBonus });
                 method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_two_before_rest", (float)config.EliteTwoBeforeRestBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_zero_shops", (float)config.ZeroShopsBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_one_shop", (float)config.OneShopBonus });
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_two_shops", (float)config.TwoShopsBonus });
 
                 var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
                     MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };

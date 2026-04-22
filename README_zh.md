@@ -216,6 +216,10 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 
 ## 更新日志
 
+### v1.11.0
+
+- 修复了配置没有正确保存的 BUG，感谢 CheezyBallz
+
 ### v1.10.0
 
 - 专家评分模式新增商店数量加成（schema version 5）

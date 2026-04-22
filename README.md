@@ -216,6 +216,10 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ## Changelog
 
+### v1.11.0
+
+- Fixed configuration not saved correctly bug, thanks CheezyBallz
+
 ### v1.10.0
 
 - Added shop count bonuses to expert scoring mode (schema version 5)

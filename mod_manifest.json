@@ -3,5 +3,5 @@
     "name": "RouteSuggest",
     "author": "Jiajie Chen @jiegec <c@jia.je>",
     "description": "Suggest best routes in game (gold for safe, red for aggressive by default, configurable)",
-    "version": "1.10.0"
+    "version": "1.11.0"
 }
