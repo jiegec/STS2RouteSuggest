@@ -797,7 +797,7 @@ public static class RouteSuggest
 
     /// <summary>
     /// Determines the config file path to use.
-    /// Priority: 1) mods/RouteSuggestConfig.json if exists, 2) existing RouteSuggestConfig.json (recursive search), 3) same directory as RouteSuggest.dll (recursive search), 4) mods/RouteSuggestConfig.json as fallback
+    /// Priority: 1) mods/RouteSuggestConfig.json if exists, 2) existing RouteSuggestConfig.json (recursive search), 3) same directory as RouteSuggest.dll (recursive search), 4) mods/RouteSuggestConfig.json if mods folder exists, else RouteSuggestConfig.json in executable directory
     /// </summary>
     /// <returns>The determined config file path.</returns>
     static string GetConfigFilePath()
@@ -878,9 +878,18 @@ public static class RouteSuggest
             LogWithTimestamp($"Mods directory does not exist: {modsPath}");
         }
 
-        // Priority 4: Fall back to mods/RouteSuggestConfig.json
-        LogWithTimestamp($"Priority 4: Falling back to default path {modsConfigPath}");
-        return modsConfigPath;
+        // Priority 4: Fall back to mods/RouteSuggestConfig.json or RouteSuggestConfig.json in executable directory
+        if (Directory.Exists(modsPath))
+        {
+            LogWithTimestamp($"Priority 4: Falling back to default path {modsConfigPath}");
+            return modsConfigPath;
+        }
+        else
+        {
+            string fallbackPath = Path.Combine(directoryName, "RouteSuggestConfig.json");
+            LogWithTimestamp($"Priority 4: Mods directory does not exist, falling back to {fallbackPath}");
+            return fallbackPath;
+        }
     }
 
     /// <summary>
