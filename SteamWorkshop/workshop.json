@@ -1,0 +1,8 @@
+﻿{
+  "title": "Route Suggest",
+  "description": "Suggest best routes in game (gold for safe, red for aggressive by default, configurable)",
+  "visibility": "public",
+  "changeNote": "None",
+  "tags": ["QoL"],
+  "dependencies": []
+}
