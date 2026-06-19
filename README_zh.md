@@ -220,6 +220,12 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 
 ## 更新日志
 
+### v1.12.0
+
+- 添加了 RouteSuggest.dll 缺失时的 RouteSuggestConfig.json 路径回退机制
+- 已发布至 Steam 创意工坊
+- 测试通过游戏版本 v0.107.1
+
 ### v1.11.0
 
 - 修复了配置没有正确保存的 BUG，感谢 CheezyBallz

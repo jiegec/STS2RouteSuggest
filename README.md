@@ -220,6 +220,12 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ## Changelog
 
+### v1.12.0
+
+- Added RouteSuggestConfig.json path fallback when RouteSuggest.dll is missing
+- Published on Steam Workshop
+- Tested on game v0.107.1
+
 ### v1.11.0
 
 - Fixed configuration not saved correctly bug, thanks CheezyBallz
