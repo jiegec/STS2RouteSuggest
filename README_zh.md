@@ -19,7 +19,11 @@
 - **图形界面配置**：通过 [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) 在游戏中进行配置（可选）
 - **手动配置**：资深用户可直接编辑 JSON 配置文件
 
-## 安装方法
+## 通过 Steam 创意工坊安装
+
+订阅：[Route Suggest](https://steamcommunity.com/sharedfiles/filedetails/?id=3747557049)
+
+## 手动安装方法
 
 1. 从 [GitHub releases](https://github.com/jiegec/STS2RouteSuggest/releases) 或 [Nexus mods](https://www.nexusmods.com/slaythespire2/mods/54) 下载最新版本
 2. 将 Mod 文件解压到《杀戮尖塔 2》的 mods 文件夹中（`mods` 文件夹应与游戏可执行文件位于同一目录）：

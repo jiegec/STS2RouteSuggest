@@ -19,7 +19,11 @@ A mod for Slay the Spire 2 that suggests the optimal path through the map and hi
 - **GUI Configuration**: Full in-game configuration via [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) (optional)
 - **Manual Configuration**: Direct JSON configuration for advanced users
 
-## Installation
+## Installation via Steam Workshop
+
+Subscribe: [Route Suggest](https://steamcommunity.com/sharedfiles/filedetails/?id=3747557049)
+
+## Manual Installation
 
 1. Download the latest release from [GitHub releases](https://github.com/jiegec/STS2RouteSuggest/releases) or [Nexus mods](https://www.nexusmods.com/slaythespire2/mods/54)
 2. Extract the mod files to your Slay the Spire 2 mods folder (`mods` folder should reside in the same folder as the game executable):
