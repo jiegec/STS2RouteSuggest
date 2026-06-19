@@ -797,7 +797,7 @@ public static class RouteSuggest
 
     /// <summary>
     /// Determines the config file path to use.
-    /// Priority: 1) mods/RouteSuggestConfig.json if exists, 2) same directory as RouteSuggest.dll (recursive search), 3) mods/RouteSuggestConfig.json as fallback
+    /// Priority: 1) mods/RouteSuggestConfig.json if exists, 2) existing RouteSuggestConfig.json (recursive search), 3) same directory as RouteSuggest.dll (recursive search), 4) mods/RouteSuggestConfig.json as fallback
     /// </summary>
     /// <returns>The determined config file path.</returns>
     static string GetConfigFilePath()
@@ -818,10 +818,35 @@ public static class RouteSuggest
         }
         LogWithTimestamp($"Config not found at {modsConfigPath}");
 
-        // Priority 2: Find RouteSuggest.dll recursively and use its directory
+        // Priority 2: Search for existing RouteSuggestConfig.json recursively
         if (Directory.Exists(modsPath))
         {
-            LogWithTimestamp("Priority 2: Searching for RouteSuggest.dll recursively in mods folder");
+            LogWithTimestamp("Priority 2: Searching for RouteSuggestConfig.json recursively in mods folder");
+            try
+            {
+                string[] configFiles = Directory.GetFiles(modsPath, "RouteSuggestConfig.json", SearchOption.AllDirectories);
+                if (configFiles.Length > 0)
+                {
+                    string existingConfigPath = configFiles[0];
+                    LogWithTimestamp($"Found existing config at {existingConfigPath} (Priority 2)");
+                    return existingConfigPath;
+                }
+                LogWithTimestamp("RouteSuggestConfig.json not found in mods folder or subdirectories");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogWithTimestamp($"Permission denied while searching for RouteSuggestConfig.json: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                LogWithTimestamp($"Error searching for RouteSuggestConfig.json: {ex.Message}");
+            }
+        }
+
+        // Priority 3: Find RouteSuggest.dll recursively and use its directory
+        if (Directory.Exists(modsPath))
+        {
+            LogWithTimestamp("Priority 3: Searching for RouteSuggest.dll recursively in mods folder");
             try
             {
                 string[] dllFiles = Directory.GetFiles(modsPath, "RouteSuggest.dll", SearchOption.AllDirectories);
@@ -831,7 +856,7 @@ public static class RouteSuggest
                     string dllDirectory = Path.GetDirectoryName(dllPath);
                     string dllConfigPath = Path.Combine(dllDirectory, "RouteSuggestConfig.json");
                     LogWithTimestamp($"Found RouteSuggest.dll at {dllPath}");
-                    LogWithTimestamp($"Using config path: {dllConfigPath} (Priority 2)");
+                    LogWithTimestamp($"Using config path: {dllConfigPath} (Priority 3)");
                     return dllConfigPath;
                 }
                 else
@@ -853,8 +878,8 @@ public static class RouteSuggest
             LogWithTimestamp($"Mods directory does not exist: {modsPath}");
         }
 
-        // Priority 3: Fall back to mods/RouteSuggestConfig.json
-        LogWithTimestamp($"Priority 3: Falling back to default path {modsConfigPath}");
+        // Priority 4: Fall back to mods/RouteSuggestConfig.json
+        LogWithTimestamp($"Priority 4: Falling back to default path {modsConfigPath}");
         return modsConfigPath;
     }
 
