@@ -1,8 +1,10 @@
-﻿{
+{
   "title": "Route Suggest",
-  "description": "Suggest best routes in game (gold for safe, red for aggressive by default, configurable)",
+  "description": "# RouteSuggest - Slay the Spire 2 Mod\n\nEnglish | [\u7b80\u4f53\u4e2d\u6587](README_zh.md)\n\n![](screenshot.png)\n\nA mod for Slay the Spire 2 that suggests the optimal path through the map and highlights it in gold/red on the map screen.\n\n**Supported game versions:** v0.107.1\n\n## Features\n\n- **Dual path suggestions**: Shows two optimal routes - a safe path and an aggressive path\n- **Visual highlighting**:\n  - **Gold**: Safe path (minimizes risk)\n  - **Red**: Aggressive path (prioritizes combat for rewards)\n- **Smart scoring**: Different weights for safe vs aggressive playstyles\n- **Expert scoring**: Optional adjacency bonuses that reward positional patterns (e.g., Rest before Elite)\n- **GUI Configuration**: Full in-game configuration via [ModConfig](https://github.com/xhyrzldf/ModConfig-STS2) (optional)\n- **Manual Configuration**: Direct JSON configuration for advanced users\n\n## Installation via Steam Workshop\n\nSubscribe: [Route Suggest](https://steamcommunity.com/sharedfiles/filedetails/?id=3747557049)\n\n## Manual Installation\n\n1. Download the latest release from [GitHub releases](https://github.com/jiegec/STS2RouteSuggest/releases) or [Nexus mods](https://www.nexusmods.com/slaythespire2/mods/54)\n2. Extract the mod files to your Slay the Spire 2 mods folder (`mods` folder should reside in the same folder as the game executable):\n   - **Windows**: `C:\\Program Files (x86)\\Steam\\steamapps\\common\\Slay the Spire 2\\mods\\`\n   - **macOS**: `~/Library/Application\\ Support/Steam/steamapps/common/Slay\\ the\\ Spire\\ 2/SlayTheSpire2.app/Contents/MacOS/mods/`\n   - **Linux**: `~/.steam/steam/steamapps/common/Slay\\ the\\ Spire\\ 2/mods`\n3. Launch Slay the Spire 2 - the mod will load automatically\n\n",
   "visibility": "public",
   "changeNote": "None",
-  "tags": ["QoL"],
+  "tags": [
+    "QoL"
+  ],
   "dependencies": []
 }
