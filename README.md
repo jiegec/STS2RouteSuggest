@@ -220,6 +220,10 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ## Changelog
 
+### v1.13.0
+
+- Improved detection of ModConfig
+
 ### v1.12.0
 
 - Added RouteSuggestConfig.json path fallback when RouteSuggest.dll is missing

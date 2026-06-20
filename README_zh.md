@@ -220,6 +220,10 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 
 ## 更新日志
 
+### v1.13.0
+
+- 改进了 ModConfig 检测
+
 ### v1.12.0
 
 - 添加了 RouteSuggest.dll 缺失时的 RouteSuggestConfig.json 路径回退机制
