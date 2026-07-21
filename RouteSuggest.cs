@@ -279,7 +279,7 @@ public static class RouteSuggest
     private static void LogWithTimestamp(string message)
     {
         string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        Log.Warn($"[{timestamp}] RouteSuggest: {message}");
+        Log.Info($"[{timestamp}] RouteSuggest: {message}");
     }
 
     /// <summary>
