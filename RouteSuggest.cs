@@ -344,46 +344,46 @@ public static class RouteSuggest
 
             try
             {
-                Type[] source = AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(a =>
-                    {
-                        try { return a.GetTypes(); }
-                        catch { return Type.EmptyTypes; }
-                    })
-                    .ToArray();
-
-                apiType = source.FirstOrDefault(t => t.FullName == "ModConfig.ModConfigApi");
-                entryType = source.FirstOrDefault(t => t.FullName == "ModConfig.ConfigEntry");
-                configType = source.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
-                managerType = source.FirstOrDefault(t => t.FullName == "ModConfig.ModConfigManager");
+                apiType = Type.GetType("ModConfig.ModConfigApi, ModConfig");
+                entryType = Type.GetType("ModConfig.ConfigEntry, ModConfig");
+                configType = Type.GetType("ModConfig.ConfigType, ModConfig");
+                managerType = Type.GetType("ModConfig.ModConfigManager, ModConfig");
 
                 if (apiType != null && entryType != null && configType != null && managerType != null)
                 {
-                    LogWithTimestamp("ModConfig detected via assembly scan");
+                    LogWithTimestamp("ModConfig detected via assembly-qualified name");
                 }
             }
             catch (Exception ex)
             {
-                LogWithTimestamp($"Assembly scan failed: {ex.Message}");
+                LogWithTimestamp($"Assembly-qualified name lookup failed: {ex.Message}");
             }
 
             if (apiType == null || entryType == null || configType == null || managerType == null)
             {
                 try
                 {
-                    apiType = Type.GetType("ModConfig.ModConfigApi, ModConfig");
-                    entryType = Type.GetType("ModConfig.ConfigEntry, ModConfig");
-                    configType = Type.GetType("ModConfig.ConfigType, ModConfig");
-                    managerType = Type.GetType("ModConfig.ModConfigManager, ModConfig");
+                    Type[] source = AppDomain.CurrentDomain.GetAssemblies()
+                        .SelectMany(a =>
+                        {
+                            try { return a.GetTypes(); }
+                            catch { return Type.EmptyTypes; }
+                        })
+                        .ToArray();
+
+                    apiType = source.FirstOrDefault(t => t.FullName == "ModConfig.ModConfigApi");
+                    entryType = source.FirstOrDefault(t => t.FullName == "ModConfig.ConfigEntry");
+                    configType = source.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
+                    managerType = source.FirstOrDefault(t => t.FullName == "ModConfig.ModConfigManager");
 
                     if (apiType != null && entryType != null && configType != null && managerType != null)
                     {
-                        LogWithTimestamp("ModConfig detected via assembly-qualified name");
+                        LogWithTimestamp("ModConfig detected via assembly scan");
                     }
                 }
                 catch (Exception ex)
                 {
-                    LogWithTimestamp($"Assembly-qualified name lookup failed: {ex.Message}");
+                    LogWithTimestamp($"Assembly scan failed: {ex.Message}");
                 }
             }
 
