@@ -349,7 +349,8 @@ public static class RouteSuggest
                 configType = Type.GetType("ModConfig.ConfigType, ModConfig");
                 managerType = Type.GetType("ModConfig.ModConfigManager, ModConfig");
 
-                if (apiType != null && entryType != null && configType != null && managerType != null)
+                // ModConfigManager is optional: ModConfig >= 0.2.4 no longer exposes it.
+                if (apiType != null && entryType != null && configType != null)
                 {
                     LogWithTimestamp("ModConfig detected via assembly-qualified name");
                 }
@@ -376,7 +377,7 @@ public static class RouteSuggest
                     configType = source.FirstOrDefault(t => t.FullName == "ModConfig.ConfigType");
                     managerType = source.FirstOrDefault(t => t.FullName == "ModConfig.ModConfigManager");
 
-                    if (apiType != null && entryType != null && configType != null && managerType != null)
+                    if (apiType != null && entryType != null && configType != null)
                     {
                         LogWithTimestamp("ModConfig detected via assembly scan");
                     }
@@ -387,48 +388,17 @@ public static class RouteSuggest
                 }
             }
 
-            if (apiType == null || entryType == null || configType == null || managerType == null)
+            if (apiType == null || entryType == null || configType == null)
             {
                 LogWithTimestamp("ModConfig not found, skipping GUI registration");
                 return;
             }
 
-            // Synchronize current config to ModConfig
-            var method = apiType.GetMethod("SetValue")!;
-            method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", false });
-            method.Invoke(null, new object[] { "RouteSuggest", "highlight_type", CurrentHighlightType.ToString() });
-            method.Invoke(null, new object[] { "RouteSuggest", "expert_mode", CurrentExpertMode });
-            method.Invoke(null, new object[] { "RouteSuggest", "__add_path", false });
-            for (int i = 0; i < PathConfigs.Count; i++)
-            {
-                var config = PathConfigs[i];
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_remove", false });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_enabled", config.Enabled });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_name", config.Name });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_color", $"#{config.Color.ToHtml(false)}" });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_priority", (float)config.Priority });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_before_elite", (float)config.RestBeforeEliteBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_before_rest", (float)config.EliteBeforeRestBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_treasure_before_elite", (float)config.TreasureBeforeEliteBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_two_before_elite", (float)config.RestTwoBeforeEliteBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_two_before_rest", (float)config.EliteTwoBeforeRestBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_zero_shops", (float)config.ZeroShopsBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_one_shop", (float)config.OneShopBonus });
-                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_two_shops", (float)config.TwoShopsBonus });
-
-                var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
-                    MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
-                foreach (var roomType in roomTypes)
-                {
-                    var weight = 0;
-                    PathConfigs[i].ScoringWeights.TryGetValue(roomType, out weight);
-                    method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_weight_{roomType}", (float)weight });
-                }
-            }
-
-            // Ensure our configurations are saved immediately
-            var save = managerType.GetMethod("SaveValues", BindingFlags.NonPublic | BindingFlags.Static)!;
-            save.Invoke(null, new object[] { "RouteSuggest" });
+            // ModConfig v0.2.4 (皮皮配置) no longer ships the internal ModConfigManager;
+            // it persists values itself whenever SetValue is called. Older versions only
+            // flushed values through ModConfigManager.SaveValues, so keep that as an
+            // optional compatibility path. Current values are pushed after Register below.
+            MethodInfo legacySave = managerType?.GetMethod("SaveValues", BindingFlags.NonPublic | BindingFlags.Static);
 
             var entries = new List<object>();
 
@@ -830,10 +800,54 @@ public static class RouteSuggest
             registerMethod!.Invoke(null, new object[] { "RouteSuggest", "RouteSuggest", entriesArray });
 
             LogWithTimestamp($"Registered {entries.Count()} entries with ModConfig (via reflection)");
+
+            // Push current values only after Register: registering makes ModConfig reload its
+            // persisted (or default) values first, which would otherwise overwrite our values.
+            SyncValuesToModConfig(apiType);
+            legacySave?.Invoke(null, new object[] { "RouteSuggest" });
         }
         catch (Exception ex)
         {
             LogWithTimestamp($"Failed to register with ModConfig: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Pushes the values currently held by RouteSuggest into ModConfig's value store.
+    /// Must be called after ModConfig.Register so ModConfig does not overwrite them.
+    /// </summary>
+    static void SyncValuesToModConfig(Type apiType)
+    {
+        var method = apiType.GetMethod("SetValue")!;
+        method.Invoke(null, new object[] { "RouteSuggest", "__reset_default", false });
+        method.Invoke(null, new object[] { "RouteSuggest", "highlight_type", CurrentHighlightType.ToString() });
+        method.Invoke(null, new object[] { "RouteSuggest", "expert_mode", CurrentExpertMode });
+        method.Invoke(null, new object[] { "RouteSuggest", "__add_path", false });
+        for (int i = 0; i < PathConfigs.Count; i++)
+        {
+            var config = PathConfigs[i];
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_remove", false });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_enabled", config.Enabled });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_name", config.Name });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_color", $"#{config.Color.ToHtml(false)}" });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_priority", (float)config.Priority });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_before_elite", (float)config.RestBeforeEliteBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_before_rest", (float)config.EliteBeforeRestBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_treasure_before_elite", (float)config.TreasureBeforeEliteBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_rest_two_before_elite", (float)config.RestTwoBeforeEliteBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_elite_two_before_rest", (float)config.EliteTwoBeforeRestBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_zero_shops", (float)config.ZeroShopsBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_one_shop", (float)config.OneShopBonus });
+            method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_two_shops", (float)config.TwoShopsBonus });
+
+            var roomTypes = new[] { MapPointType.RestSite, MapPointType.Treasure, MapPointType.Shop,
+                MapPointType.Monster, MapPointType.Elite, MapPointType.Unknown, MapPointType.Boss };
+            foreach (var roomType in roomTypes)
+            {
+                var weight = 0;
+                PathConfigs[i].ScoringWeights.TryGetValue(roomType, out weight);
+                method.Invoke(null, new object[] { "RouteSuggest", $"path_{i}_weight_{roomType}", (float)weight });
+            }
         }
     }
 
