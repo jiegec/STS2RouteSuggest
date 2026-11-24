@@ -220,6 +220,12 @@ Users have shared their custom configurations on the [Nexus Mods posts page](htt
 
 ## Changelog
 
+### v1.14.0
+
+- Fixed ModConfig GUI registration with ModConfig v0.2.4 (皮皮配置), which removed the internal `ModConfigManager`
+- Configuration values are now pushed after registration, so the Mods tab shows the values actually used by RouteSuggest
+- ModConfig detection falls back to an assembly scan when the assembly-qualified name lookup fails
+
 ### v1.13.0
 
 - Improved detection of ModConfig

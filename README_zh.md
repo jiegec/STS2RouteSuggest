@@ -220,6 +220,12 @@ RouteSuggest 可选集成 [**ModConfig**](https://github.com/xhyrzldf/ModConfig-
 
 ## 更新日志
 
+### v1.14.0
+
+- 修复在 ModConfig v0.2.4（皮皮配置）下无法注册设置页的问题（该版本移除了内部 `ModConfigManager`）
+- 注册完成后再同步配置值，设置页显示与实际使用的配置保持一致
+- 按程序集名解析失败时回退到程序集扫描来查找 ModConfig
+
 ### v1.13.0
 
 - 改进了 ModConfig 检测
